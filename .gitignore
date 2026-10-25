@@ -16,3 +16,6 @@ storage/*.enc
 .vscode/
 benchmark_results.csv
 benchmark_chart.png
+DESIGN.md
+design.md_sovereign_trust.md
+penugasan.md
