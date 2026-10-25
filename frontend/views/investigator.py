@@ -269,16 +269,22 @@ def render_investigator_view():
             # A. KTP Previewer
             if "ktp" in files:
                 clean_name = files["ktp"]["filename"]
+                if not clean_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    clean_name += ".jpg"
                 render_ktp_preview(files["ktp"]["bytes"], clean_name)
 
             # B. PDF Previewer
             if "doc" in files:
                 clean_name = files["doc"]["filename"]
+                if not clean_name.lower().endswith('.pdf'):
+                    clean_name += ".pdf"
                 render_pdf_preview(files["doc"]["bytes"], clean_name)
 
             # C. Video Previewer
             if "vid" in files:
                 clean_name = files["vid"]["filename"]
+                if not clean_name.lower().endswith('.mp4'):
+                    clean_name += ".mp4"
                 render_video_preview(files["vid"]["bytes"], clean_name)
 
         st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.75rem 0;'>", unsafe_allow_html=True)
