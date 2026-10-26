@@ -1,13 +1,13 @@
-Tipe Data,Ukuran (MB),Cipher,Waktu Enkripsi (s),Waktu Dekripsi (s),RAM Overhead (MB),CPU Usage (%),Integritas
-Data Pribadi (Teks),0.0,AES,0.03514,4e-05,0.071,0.1,PASS
-Data Pribadi (Teks),0.0,DES,0.00046,0.00011,0.013,0.1,PASS
-Data Pribadi (Teks),0.0,RC4,0.0003,2e-05,0.009,0.1,PASS
-Scan Identitas (KTP),0.49,AES,0.00141,0.00051,0.978,0.1,PASS
-Scan Identitas (KTP),0.49,DES,0.0115,0.01062,0.978,37.3,PASS
-Scan Identitas (KTP),0.49,RC4,0.00076,0.00068,0.49,0.1,PASS
-Dokumen Bukti (PDF),2.0,AES,0.00365,0.00274,4.001,0.1,PASS
-Dokumen Bukti (PDF),2.0,DES,0.0454,0.04286,4.001,12.4,PASS
-Dokumen Bukti (PDF),2.0,RC4,0.00296,0.00286,2.001,0.1,PASS
-Video Bukti (MP4),10.0,AES,0.01873,0.01157,20.001,57.7,PASS
-Video Bukti (MP4),10.0,DES,0.23134,0.21646,20.001,0.1,PASS
-Video Bukti (MP4),10.0,RC4,0.01619,0.01575,10.001,0.1,PASS
+Tipe Data,Ukuran (MB),Cipher,Waktu Enkripsi (s),Waktu Dekripsi (s),Throughput Enkripsi (MB/s),RAM Overhead (MB),Integritas
+Data Pribadi (Teks),0.0,AES,2e-05,3e-05,159.6,0.012,PASS
+Data Pribadi (Teks),0.0,DES,0.00013,0.00012,29.5,0.012,PASS
+Data Pribadi (Teks),0.0,RC4,2e-05,2e-05,185.6,0.012,PASS
+Scan Identitas (KTP),0.49,AES,0.001,0.00088,486.2,1.466,PASS
+Scan Identitas (KTP),0.49,DES,0.01665,0.01814,29.3,1.466,PASS
+Scan Identitas (KTP),0.49,RC4,0.00261,0.00129,187.4,1.465,PASS
+Dokumen Bukti (PDF),2.0,AES,0.00448,0.00331,446.8,6.001,PASS
+Dokumen Bukti (PDF),2.0,DES,0.06945,0.06449,28.8,6.001,PASS
+Dokumen Bukti (PDF),2.0,RC4,0.00497,0.00503,402.7,6.0,PASS
+Video Bukti (MP4),10.0,AES,0.03109,0.03007,321.6,30.001,PASS
+Video Bukti (MP4),10.0,DES,0.36988,0.33009,27.0,30.001,PASS
+Video Bukti (MP4),10.0,RC4,0.03378,0.03135,296.0,30.0,PASS

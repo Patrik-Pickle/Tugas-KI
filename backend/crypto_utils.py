@@ -47,9 +47,10 @@ def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes
         final_payload = iv + ciphertext
         
     elif cipher_name == 'RC4':
-        cipher = ARC4.new(key)
-        ciphertext = cipher.encrypt(data_bytes)
-        final_payload = ciphertext
+        nonce = os.urandom(16)
+        rc4_key = hashlib.sha256(key + nonce).digest()[:16]
+        ciphertext = ARC4.new(rc4_key).encrypt(data_bytes)
+        final_payload = nonce + ciphertext
         
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")
@@ -86,8 +87,9 @@ def decrypt_data(encrypted_bytes: bytes, cipher_name: str, key: bytes) -> tuple[
         plaintext = unpad(decrypted_padded, DES.block_size)
         
     elif cipher_name == 'RC4':
-        cipher = ARC4.new(key)
-        plaintext = cipher.decrypt(encrypted_bytes)
+        nonce, ciphertext = encrypted_bytes[:16], encrypted_bytes[16:]
+        rc4_key = hashlib.sha256(key + nonce).digest()[:16]
+        plaintext = ARC4.new(rc4_key).decrypt(ciphertext)
         
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")

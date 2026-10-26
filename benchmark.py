@@ -1,7 +1,7 @@
 import os
 import time
 import tracemalloc
-import psutil
+import statistics
 import pandas as pd
 import matplotlib.pyplot as plt
 from backend import crypto_utils
@@ -20,6 +20,17 @@ TEST_FILES = {
 CIPHERS = ['AES', 'DES', 'RC4']
 DUMMY_PASSWORD = "UserSecurePass123!"
 DUMMY_SALT = b'WBS_SecureSalt16'
+
+REPEAT = 7
+
+def measure(fn):
+    fn()  # warm-up, tidak dihitung
+    ts = []
+    for _ in range(REPEAT):
+        t0 = time.perf_counter()
+        fn()
+        ts.append(time.perf_counter() - t0)
+    return statistics.median(ts)
 
 def ensure_sample_files_exist():
     """Membuat file dummy otomatis jika sampel belum ada di folder sample_data"""
@@ -42,9 +53,8 @@ def ensure_sample_files_exist():
 def run_advanced_benchmark():
     ensure_sample_files_exist()
     results = []
-    process = psutil.Process(os.getpid())
     
-    print("[*] Memulai Advanced Benchmark (Time, RAM, CPU)...")
+    print("[*] Memulai Advanced Benchmark (Time, RAM)...")
     
     for file_label, file_path in TEST_FILES.items():
         if not os.path.exists(file_path):
@@ -59,32 +69,32 @@ def run_advanced_benchmark():
         for cipher in CIPHERS:
             # Generate key menggunakan PBKDF2
             key = crypto_utils.derive_key(DUMMY_PASSWORD, DUMMY_SALT, cipher)
-            
-            # --- UJUR ENKRIPSI ---
+
+            # --- WAKTU (diulang, diambil median) ---
+            enc_bytes, _ = crypto_utils.encrypt_data(data_bytes, cipher, key)
+            enc_t = measure(lambda: crypto_utils.encrypt_data(data_bytes, cipher, key))
+            dec_t = measure(lambda: crypto_utils.decrypt_data(enc_bytes, cipher, key))
+
+            # --- INTEGRITAS (roundtrip) ---
+            dec_bytes, _ = crypto_utils.decrypt_data(enc_bytes, cipher, key)
+            is_valid = (data_bytes == dec_bytes)
+
+            # --- MEMORI (putaran terpisah, supaya tidak mengganggu waktu) ---
             tracemalloc.start()
-            cpu_before = process.cpu_percent(interval=None)
-            
-            enc_bytes, enc_time = crypto_utils.encrypt_data(data_bytes, cipher, key)
-            
-            cpu_after = process.cpu_percent(interval=None)
+            crypto_utils.encrypt_data(data_bytes, cipher, key)
             _, peak_mem = tracemalloc.get_traced_memory()
             tracemalloc.stop()
-            
+
             ram_overhead_mb = peak_mem / (1024 * 1024)
-            cpu_usage_pct = max(cpu_after - cpu_before, 0.1)
-            
-            # --- UJUR DEKRIPSI ---
-            dec_bytes, dec_time = crypto_utils.decrypt_data(enc_bytes, cipher, key)
-            is_valid = (data_bytes == dec_bytes)
-            
+
             results.append({
                 "Tipe Data": file_label,
                 "Ukuran (MB)": round(file_size_mb, 2),
                 "Cipher": cipher,
-                "Waktu Enkripsi (s)": round(enc_time, 5),
-                "Waktu Dekripsi (s)": round(dec_time, 5),
+                "Waktu Enkripsi (s)": round(enc_t, 5),
+                "Waktu Dekripsi (s)": round(dec_t, 5),
+                "Throughput Enkripsi (MB/s)": round(len(data_bytes) / (1024 * 1024) / enc_t, 1),
                 "RAM Overhead (MB)": round(ram_overhead_mb, 3),
-                "CPU Usage (%)": round(cpu_usage_pct, 1),
                 "Integritas": "PASS" if is_valid else "FAIL"
             })
             
@@ -105,7 +115,7 @@ def run_advanced_benchmark():
 
 def generate_charts(df):
     """Membuat grafik visual otomatis untuk laporan A4"""
-    fig, axes = plt.subplots(1, 3, figsize=(16, 5))
+    fig, axes = plt.subplots(1, 2, figsize=(11, 5))
     
     # Chart 1: Waktu Enkripsi
     df_pivot_time = df.pivot(index='Tipe Data', columns='Cipher', values='Waktu Enkripsi (s)')
@@ -120,13 +130,6 @@ def generate_charts(df):
     axes[1].set_title('Penggunaan RAM (MB)')
     axes[1].set_ylabel('MB')
     axes[1].tick_params(axis='x', rotation=15)
-    
-    # Chart 3: CPU Usage
-    df_pivot_cpu = df.pivot(index='Tipe Data', columns='Cipher', values='CPU Usage (%)')
-    df_pivot_cpu.plot(kind='bar', ax=axes[2], colormap='coolwarm')
-    axes[2].set_title('Penggunaan CPU (%)')
-    axes[2].set_ylabel('Persentase (%)')
-    axes[2].tick_params(axis='x', rotation=15)
     
     plt.tight_layout()
     chart_path = "benchmark_charts.png"
