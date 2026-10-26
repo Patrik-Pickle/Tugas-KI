@@ -33,6 +33,7 @@ def init_db():
             doc_filename TEXT NOT NULL,
             video_filename TEXT NOT NULL,
             cipher_used TEXT NOT NULL,
+            salt BLOB NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
@@ -90,16 +91,16 @@ def authenticate_user(username, password):
 
 # Fungsi Report Management
 
-def create_report(user_id, title, chronology_encrypted, ktp_filename, doc_filename, video_filename, cipher_used):
+def create_report(user_id, title, chronology_encrypted, ktp_filename, doc_filename, video_filename, cipher_used, salt):
     conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
         INSERT INTO reports (
             user_id, title, chronology_encrypted, 
-            ktp_filename, doc_filename, video_filename, cipher_used
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (user_id, title, chronology_encrypted, ktp_filename, doc_filename, video_filename, cipher_used))
+            ktp_filename, doc_filename, video_filename, cipher_used, salt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (user_id, title, chronology_encrypted, ktp_filename, doc_filename, video_filename, cipher_used, salt))
     
     report_id = cursor.lastrowid
     conn.commit()

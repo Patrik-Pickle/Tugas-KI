@@ -3,6 +3,7 @@ import streamlit as st
 import database
 import crypto_utils
 import forensic_utils
+import html
 from components.header import render_sovereign_header
 from components.previewers import (
     render_ktp_preview,
@@ -29,7 +30,9 @@ from components.tracking_db import (
     update_report_disposition,
     render_status_badge,
     STATUS_CHOICES,
-    VERDICT_CHOICES
+    VERDICT_CHOICES,
+    STATUS_COMPLETED,
+    STATUS_REJECTED
 )
 
 STORAGE_DIR = os.path.join("storage", "encrypted_files")
@@ -94,10 +97,10 @@ def render_investigator_view():
                     clean_html(f"""
                     <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-size: 0.88rem; font-weight: 600; color: #0b0f19;">
-                            {ticket_code_r} : {r['title']}
+                            {ticket_code_r} : {html.escape(r['title'])}
                         </span>
                         <div style="display: flex; gap: 0.75rem; align-items: center; font-size: 0.8rem; color: #64748b;">
-                            <span>Pelapor: <b>{r['reporter']}</b></span>
+                            <span>Pelapor: <b>{html.escape(r['reporter'])}</b></span>
                             <span>{r['created_at']}</span>
                             <span class="sovereign-badge badge-primary">{r['cipher_used']}</span>
                             {render_status_badge(disp_r['status'])}
@@ -149,7 +152,7 @@ def render_investigator_view():
                     <div>
                         <span style="font-size: 0.72rem; color: #64748b; text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;">Nomor Tiket Investigasi Resmi (CSPRNG)</span>
                         <h3 style="font-family: 'Merriweather', serif; font-size: 1.25rem; font-weight: 700; color: #0b0f19; margin: 0.15rem 0 0 0;">
-                            {ticket_code} : {report['title']}
+                            {ticket_code} : {html.escape(report['title'])}
                         </h3>
                     </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -184,6 +187,8 @@ def render_investigator_view():
             unsafe_allow_html=True
         )
 
+        user_key = crypto_utils.get_report_key(report["salt"], report["cipher_used"])
+
         col_c1, col_c2 = st.columns([1, 1])
         with col_c1:
             st.caption("Cuplikan Sandi Kriptografis (Ciphertext Hex BLOB):")
@@ -195,7 +200,7 @@ def render_investigator_view():
             st.caption("Aksi Dekripsi Investigator:")
             if st.button("Dekripsi Kronologi Teks", key=f"btn_dec_text_{report['id']}", use_container_width=True):
                 try:
-                    decrypted_bytes, dec_time = crypto_utils.decrypt_data(report["chronology_encrypted"], report["cipher_used"])
+                    decrypted_bytes, dec_time = crypto_utils.decrypt_data(report["chronology_encrypted"], report["cipher_used"], user_key)
                     st.session_state[f"dec_text_{report['id']}"] = {
                         "text": decrypted_bytes.decode("utf-8", errors="replace"),
                         "time": dec_time
@@ -212,7 +217,7 @@ def render_investigator_view():
                             {icon(ICON_CHECK_CIRCLE, size=14, color="#059669")}
                             <span>Berhasil didekripsi dalam {res['time'] * 1000:.3f} ms</span>
                         </div>
-                        {res['text']}
+                        {html.escape(res['text']).replace(chr(10), '<br>')}
                     </div>
                     """),
                     unsafe_allow_html=True
@@ -276,14 +281,6 @@ def render_investigator_view():
 
             if do_decrypt:
                 with st.spinner("Mendekripsi berkas bukti forensik..."):
-                    # Generate key untuk dekripsi
-                    try:
-                        user_password = report["reporter"]
-                    except (KeyError, IndexError, TypeError):
-                        user_password = "UserPass123!"
-                    user_salt = b'WBS_SecureSalt16'
-                    user_key = crypto_utils.derive_key(user_password, user_salt, report["cipher_used"])
-
                     decrypted_files = {}
                     for file_key, file_path, label in [
                         ("ktp", ktp_path, "KTP"),
@@ -458,6 +455,9 @@ def render_investigator_view():
         except ValueError:
             verdict_idx = 0
 
+        if st.session_state.pop("disp_saved", False):
+            st.success("Putusan resmi dan disposisi berhasil disahkan!")
+            
         with st.form(key=f"form_disp_{report['id']}"):
             sel_status = st.selectbox(
                 "Status Perkembangan Penanganan Kasus:",
@@ -493,15 +493,16 @@ def render_investigator_view():
             )
             submitted = st.form_submit_button("Sahkan Putusan & Kirim Hasil Penanganan", type="primary", use_container_width=True)
             if submitted:
-                update_report_disposition(
-                    report["id"],
-                    status=sel_status,
-                    notes=input_notes,
-                    decision_number=input_decision_number,
-                    verdict_category=sel_verdict
-                )
-                st.success("Putusan resmi dan disposisi investigasi berhasil disahkan dan disalurkan ke portal pelapor!")
-                st.rerun()
+                final = sel_status in (STATUS_COMPLETED, STATUS_REJECTED)
+                if final and sel_verdict == VERDICT_CHOICES[0]:
+                    st.error("Status final wajib memilih klasifikasi putusan selain 'Dalam Proses Penelaahan'.")
+                else:
+                    update_report_disposition(
+                        report["id"], status=sel_status, notes=input_notes,
+                        decision_number=input_decision_number, verdict_category=sel_verdict
+                        )
+                    st.session_state["disp_saved"] = True
+                    st.rerun()
 
     # Footer
     st.markdown(render_footer(), unsafe_allow_html=True)

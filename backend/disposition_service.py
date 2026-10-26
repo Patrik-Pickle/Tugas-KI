@@ -205,15 +205,6 @@ def find_report_for_tracking(query_code: str):
     if disp_match:
         report_id = disp_match["report_id"]
 
-    # Fallback jika query berformat ID WBS-XXXXX atau angka murni
-    if not report_id:
-        if clean_code.startswith("WBS-"):
-            num_part = clean_code.replace("WBS-", "").lstrip("0")
-            if num_part.isdigit():
-                report_id = int(num_part)
-        elif clean_code.isdigit():
-            report_id = int(clean_code)
-
     if not report_id:
         conn.close()
         return None

@@ -17,3 +17,23 @@ storage/*.enc
 DESIGN.md
 design.md_sovereign_trust.md
 penugasan.md
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Secret / konfigurasi lokal
+.env
+.env.*
+.streamlit/secrets.toml
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# Database tambahan (SQLite journal)
+*.db-journal
+*.db-wal
+*.db-shm

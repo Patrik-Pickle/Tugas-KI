@@ -19,6 +19,12 @@ def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
         dklen=key_len
     )
 
+def get_report_key(salt: bytes, cipher_name: str) -> bytes:
+    master = os.environ.get("WBS_MASTER_KEY")
+    if not master:
+        raise RuntimeError("Environment variable WBS_MASTER_KEY belum di-set.")
+    return derive_key(master, salt, cipher_name)
+
 
 def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes, float]:
     cipher_name = cipher_name.upper()
