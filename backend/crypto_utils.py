@@ -5,6 +5,7 @@ from Crypto.Util.Padding import pad, unpad
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Hash import SHA256
 import hashlib
+import hmac
 
 def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
     cipher_name = cipher_name.upper()
@@ -18,6 +19,9 @@ def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
         100000,
         dklen=key_len
     )
+
+def _mac_key(key: bytes) -> bytes:
+    return hashlib.sha256(key + b"mac").digest()
 
 def get_report_key(salt: bytes, cipher_name: str) -> bytes:
     master = os.environ.get("WBS_MASTER_KEY")
@@ -50,6 +54,7 @@ def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")
         
+    final_payload += hmac.new(_mac_key(key), final_payload, hashlib.sha256).digest()
     elapsed_time = time.perf_counter() - start_time
     return final_payload, elapsed_time
 
@@ -57,6 +62,14 @@ def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes
 def decrypt_data(encrypted_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes, float]:
     cipher_name = cipher_name.upper()
     start_time = time.perf_counter()
+
+    if len(encrypted_bytes) < 32:
+        raise ValueError("Integritas gagal: data terlalu pendek")
+    body, tag = encrypted_bytes[:-32], encrypted_bytes[-32:]
+    expected = hmac.new(_mac_key(key), body, hashlib.sha256).digest()
+    if not hmac.compare_digest(tag, expected):
+        raise ValueError("Integritas gagal: data telah diubah atau kunci salah")
+    encrypted_bytes = body
     
     if cipher_name == 'AES':
         iv = encrypted_bytes[:16]
