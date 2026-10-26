@@ -2,8 +2,14 @@ import os
 import streamlit as st
 import database
 import crypto_utils
+import forensic_utils
 from components.header import render_sovereign_header
-from components.previewers import render_ktp_preview, render_pdf_preview, render_video_preview
+from components.previewers import (
+    render_ktp_preview,
+    render_pdf_preview,
+    render_video_preview,
+    render_ciphertext_card
+)
 from components.icons import (
     icon,
     ICON_ACTIVITY,
@@ -41,8 +47,7 @@ def render_investigator_view():
 
     # Header in main content area with top-left profile popover
     render_sovereign_header(
-        title="SecureReport : Workspace Investigator",
-        subtitle="Portal Verifikasi Forensik Kriptografi & Dekripsi Dossier Bukti Hukum"
+        title="SecureReport : Workspace Investigator"
     )
 
     all_reports = database.get_all_reports()
@@ -237,55 +242,173 @@ def render_investigator_view():
         doc_path = os.path.join(STORAGE_DIR, report["doc_filename"])
         vid_path = os.path.join(STORAGE_DIR, report["video_filename"])
 
-        if st.button("Dekripsi Seluruh Berkas Bukti (KTP, PDF, MP4)", key=f"btn_dec_all_files_{report['id']}", use_container_width=True):
-            with st.spinner("Mendekripsi berkas bukti forensik..."):
-                decrypted_files = {}
-                for file_key, file_path, label in [
-                    ("ktp", ktp_path, "KTP"),
-                    ("doc", doc_path, "Dokumen PDF"),
-                    ("vid", vid_path, "Video MP4")
-                ]:
-                    if os.path.exists(file_path):
-                        try:
-                            with open(file_path, "rb") as f:
-                                enc_content = f.read()
-                            dec_content, dec_time = crypto_utils.decrypt_data(enc_content, report["cipher_used"])
-                            decrypted_files[file_key] = {
-                                "bytes": dec_content,
-                                "time": dec_time,
-                                "filename": os.path.basename(file_path).replace(".enc", "")
-                            }
-                        except Exception as e:
-                            st.error(f"Gagal mendekripsi berkas {label}: {str(e)}")
-                    else:
-                        st.warning(f"File terenkripsi {label} tidak ditemukan di server: <code>{file_path}</code>")
+        ktp_telemetry = forensic_utils.get_file_forensic_telemetry(ktp_path)
+        doc_telemetry = forensic_utils.get_file_forensic_telemetry(doc_path)
+        vid_telemetry = forensic_utils.get_file_forensic_telemetry(vid_path)
 
-                st.session_state[f"dec_files_{report['id']}"] = decrypted_files
+        is_decrypted = f"dec_files_{report['id']}" in st.session_state
 
-        # Menampilkan Hasil Dekripsi Berkas
-        if f"dec_files_{report['id']}" in st.session_state:
+        if not is_decrypted:
+            # Action Bar: Tombol Dekripsi & Status di bagian atas
+            col_dec_info, col_dec_btn = st.columns([2, 1.2])
+            with col_dec_info:
+                st.markdown(
+                    clean_html(f"""
+                    <div class="sovereign-card-interactive" style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1d4ed8; border-radius: 8px; padding: 0.75rem 1rem;">
+                        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">
+                            Status Forensik: Berkas Terproteksi Sandi ({report['cipher_used']})
+                        </div>
+                        <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;">
+                            3 berkas bukti fisik (KTP, PDF, Video) tersimpan dalam format sandi biner di peladen.
+                        </div>
+                    </div>
+                    """),
+                    unsafe_allow_html=True
+                )
+            with col_dec_btn:
+                do_decrypt = st.button(
+                    "Dekripsi Seluruh Berkas Bukti",
+                    key=f"btn_dec_all_files_{report['id']}",
+                    type="primary",
+                    use_container_width=True,
+                    help="Mendekripsi KTP, PDF, dan Video ke memory buffer forensik"
+                )
+
+            if do_decrypt:
+                with st.spinner("Mendekripsi berkas bukti forensik..."):
+                    decrypted_files = {}
+                    for file_key, file_path, label in [
+                        ("ktp", ktp_path, "KTP"),
+                        ("doc", doc_path, "Dokumen PDF"),
+                        ("vid", vid_path, "Video MP4")
+                    ]:
+                        if os.path.exists(file_path):
+                            try:
+                                with open(file_path, "rb") as f:
+                                    enc_content = f.read()
+                                dec_content, dec_time = crypto_utils.decrypt_data(enc_content, report["cipher_used"])
+                                decrypted_files[file_key] = {
+                                    "bytes": dec_content,
+                                    "time": dec_time,
+                                    "filename": os.path.basename(file_path).replace(".enc", "")
+                                }
+                            except Exception as e:
+                                st.error(f"Gagal mendekripsi berkas {label}: {str(e)}")
+                        else:
+                            st.warning(f"File terenkripsi {label} tidak ditemukan di server: <code>{file_path}</code>")
+
+                    st.session_state[f"dec_files_{report['id']}"] = decrypted_files
+                    st.rerun()
+
+            st.markdown("<div style='margin-top: 0.85rem;'></div>", unsafe_allow_html=True)
+
+            # Pratinjau Sandi KTP (Noise Canvas + Entropi Shannon)
+            render_ciphertext_card(
+                telemetry=ktp_telemetry,
+                file_label="Berkas Scan KTP Terenkripsi",
+                filename=report["ktp_filename"],
+                cipher_used=report["cipher_used"],
+                is_image=True
+            )
+
+            with st.expander("Lihat Telemetri Sandi Dokumen PDF & Video MP4 Terenkripsi", expanded=False):
+                render_ciphertext_card(
+                    telemetry=doc_telemetry,
+                    file_label="Dokumen PDF Terenkripsi",
+                    filename=report["doc_filename"],
+                    cipher_used=report["cipher_used"],
+                    is_image=False
+                )
+                render_ciphertext_card(
+                    telemetry=vid_telemetry,
+                    file_label="Video Bukti Terenkripsi",
+                    filename=report["video_filename"],
+                    cipher_used=report["cipher_used"],
+                    is_image=False
+                )
+
+        else:
             files = st.session_state[f"dec_files_{report['id']}"]
             
-            # A. KTP Previewer
-            if "ktp" in files:
-                clean_name = files["ktp"]["filename"]
-                if not clean_name.lower().endswith(('.jpg', '.jpeg', '.png')):
-                    clean_name += ".jpg"
-                render_ktp_preview(files["ktp"]["bytes"], clean_name)
+            tab_decrypted, tab_ciphertext = st.tabs([
+                "Berkas Asli Terdekripsi (Forensik)",
+                "Matriks Sandi Kriptografis (Sebelum Dekripsi)"
+            ])
 
-            # B. PDF Previewer
-            if "doc" in files:
-                clean_name = files["doc"]["filename"]
-                if not clean_name.lower().endswith('.pdf'):
-                    clean_name += ".pdf"
-                render_pdf_preview(files["doc"]["bytes"], clean_name)
+            with tab_decrypted:
+                st.markdown("<div style='margin-top: 0.65rem;'></div>", unsafe_allow_html=True)
+                col_head1, col_head2 = st.columns([2.5, 1])
+                with col_head1:
+                    st.markdown(
+                        clean_html(f"""
+                        <div class="decrypted-card-reveal" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 0.55rem 0.95rem; display: flex; align-items: center; gap: 0.5rem; min-height: 40px;">
+                            {icon(ICON_CHECK_CIRCLE, size=18, color="#059669")}
+                            <span style="font-size: 0.84rem; color: #065f46; font-weight: 600;">
+                                3 Berkas Bukti Didekripsi ke Memori Buffer Forensik Terisolasi
+                            </span>
+                        </div>
+                        """),
+                        unsafe_allow_html=True
+                    )
+                with col_head2:
+                    if st.button("Tutup / Kunci Memori", key=f"btn_lock_files_{report['id']}", type="secondary", use_container_width=True, help="Bersihkan seluruh buffer plaintext dari sesi"):
+                        del st.session_state[f"dec_files_{report['id']}"]
+                        st.rerun()
 
-            # C. Video Previewer
-            if "vid" in files:
-                clean_name = files["vid"]["filename"]
-                if not clean_name.lower().endswith('.mp4'):
-                    clean_name += ".mp4"
-                render_video_preview(files["vid"]["bytes"], clean_name)
+                st.markdown("<div style='margin-bottom: 0.85rem;'></div>", unsafe_allow_html=True)
+
+                # A. KTP Previewer
+                if "ktp" in files:
+                    clean_name = files["ktp"]["filename"]
+                    if not clean_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                        clean_name += ".jpg"
+                    render_ktp_preview(files["ktp"]["bytes"], clean_name)
+
+                # B. PDF Previewer
+                if "doc" in files:
+                    clean_name = files["doc"]["filename"]
+                    if not clean_name.lower().endswith('.pdf'):
+                        clean_name += ".pdf"
+                    render_pdf_preview(files["doc"]["bytes"], clean_name)
+
+                # C. Video Previewer
+                if "vid" in files:
+                    clean_name = files["vid"]["filename"]
+                    if not clean_name.lower().endswith('.mp4'):
+                        clean_name += ".mp4"
+                    render_video_preview(files["vid"]["bytes"], clean_name)
+
+            with tab_ciphertext:
+                st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
+                st.markdown(
+                    clean_html(f"""
+                    <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1d4ed8; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.84rem; color: #334155;">
+                        <b>Komparasi Forensik:</b> Berikut adalah wujud fisik dan status integritas data terenkripsi sebelum didekripsi oleh investigator.
+                    </div>
+                    """),
+                    unsafe_allow_html=True
+                )
+                render_ciphertext_card(
+                    telemetry=ktp_telemetry,
+                    file_label="Berkas Scan KTP Terenkripsi",
+                    filename=report["ktp_filename"],
+                    cipher_used=report["cipher_used"],
+                    is_image=True
+                )
+                render_ciphertext_card(
+                    telemetry=doc_telemetry,
+                    file_label="Dokumen PDF Terenkripsi",
+                    filename=report["doc_filename"],
+                    cipher_used=report["cipher_used"],
+                    is_image=False
+                )
+                render_ciphertext_card(
+                    telemetry=vid_telemetry,
+                    file_label="Video Bukti Terenkripsi",
+                    filename=report["video_filename"],
+                    cipher_used=report["cipher_used"],
+                    is_image=False
+                )
 
         st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.75rem 0;'>", unsafe_allow_html=True)
 

@@ -23,7 +23,7 @@ def render_landing_view():
     """
 
     # 1. Sticky Navigation Bar with three-dot profile menu (Top-Left)
-    col_menu, col_brand, nav_col_links, nav_col_btn1, nav_col_btn2 = st.columns([0.45, 1.6, 3.6, 0.9, 0.9])
+    col_menu, col_brand, nav_col_links, nav_col_btn = st.columns([0.45, 1.8, 3.8, 1.4])
 
     with col_menu:
         render_profile_menu()
@@ -55,15 +55,8 @@ def render_landing_view():
             unsafe_allow_html=True
         )
 
-    with nav_col_btn1:
-        if st.button("Masuk Petugas", key="nav_btn_petugas", type="secondary", use_container_width=True):
-            st.session_state.auth_default_tab = "investigator"
-            st.session_state.current_page = "auth"
-            st.rerun()
-
-    with nav_col_btn2:
-        if st.button("Buat Pengaduan", key="nav_btn_lapor", type="primary", use_container_width=True):
-            st.session_state.auth_default_tab = "pelapor"
+    with nav_col_btn:
+        if st.button("Masuk Portal", key="nav_btn_portal", type="primary", use_container_width=True):
             st.session_state.current_page = "auth"
             st.rerun()
 
@@ -107,7 +100,7 @@ def render_landing_view():
         # Hero Assurance Card
         st.markdown(
             clean_html(f"""
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.75rem; box-shadow: 0 4px 6px -1px rgba(11,15,25,0.05);">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.75rem; box-shadow: 0 4px 6px -1px rgba(11,15,25,0.05);">
                 <div style="font-weight: 700; font-size: 1.05rem; color: #0b0f19; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                     {icon(ICON_SHIELD_CHECK, size=22, color="#1d4ed8")}
                     <span>Jaminan dan Komitmen Layanan</span>
@@ -151,7 +144,7 @@ def render_landing_view():
 
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; align-items: stretch;">
             <!-- Card 1 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #1d4ed8; border-radius: 12px; padding: 1.75rem 1.5rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #1d4ed8; border-radius: 12px; padding: 1.75rem 1.5rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
                 <div>
                     <div style="font-weight: 700; font-size: 1.15rem; color: #0b0f19; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.5rem;">
                         {icon(ICON_USER_CHECK, size=24, color="#1d4ed8")}
@@ -168,7 +161,7 @@ def render_landing_view():
             </div>
 
             <!-- Card 2 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #059669; border-radius: 12px; padding: 1.75rem 1.5rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #059669; border-radius: 12px; padding: 1.75rem 1.5rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
                 <div>
                     <div style="font-weight: 700; font-size: 1.15rem; color: #0b0f19; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.5rem;">
                         {icon(ICON_LOCK, size=24, color="#059669")}
@@ -185,7 +178,7 @@ def render_landing_view():
             </div>
 
             <!-- Card 3 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #2563eb; border-radius: 12px; padding: 1.75rem 1.5rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #2563eb; border-radius: 12px; padding: 1.75rem 1.5rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
                 <div>
                     <div style="font-weight: 700; font-size: 1.15rem; color: #0b0f19; margin-bottom: 0.65rem; display: flex; align-items: center; gap: 0.5rem;">
                         {icon(ICON_KEY, size=24, color="#2563eb")}
@@ -221,7 +214,7 @@ def render_landing_view():
 
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; align-items: stretch;">
             <!-- Step 1 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
                 <div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
                         <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.2rem 0.55rem; letter-spacing: 0.05em;">
@@ -245,7 +238,7 @@ def render_landing_view():
             </div>
 
             <!-- Step 2 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
                 <div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
                         <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.2rem 0.55rem; letter-spacing: 0.05em;">
@@ -269,7 +262,7 @@ def render_landing_view():
             </div>
 
             <!-- Step 3 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
                 <div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
                         <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.2rem 0.55rem; letter-spacing: 0.05em;">
@@ -283,17 +276,17 @@ def render_landing_view():
                         Dapatkan Tiket CSPRNG
                     </div>
                     <p style="font-size: 0.85rem; color: #475569; line-height: 1.6; margin: 0;">
-                        Simpan kode tiket kriptografis berentropi tinggi yang diterbitkan sistem untuk identitas pengaduan Anda.
+                        Simpan kode tiket yang diterbitkan sistem untuk identitas pengaduan Anda.
                     </p>
                 </div>
                 <div style="margin-top: 1.25rem; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; font-weight: 600; color: #1d4ed8;">
                     {icon(ICON_CHECK_CIRCLE, size=14, color="#1d4ed8")}
-                    <span>Kode Kriptografis Unik</span>
+                    <span>Kode Unik</span>
                 </div>
             </div>
 
             <!-- Step 4 -->
-            <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
+            <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.5rem 1.25rem; box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05); display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px;">
                 <div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
                         <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 6px; padding: 0.2rem 0.55rem; letter-spacing: 0.05em;">
@@ -323,34 +316,36 @@ def render_landing_view():
     # 5. Closing CTA Section with generous vertical rhythm
     st.markdown("<div style='margin-top: 4.5rem;'></div><div id='dasar-hukum' style='scroll-margin-top: 5rem;'></div>", unsafe_allow_html=True)
 
-    st.markdown(
-        clean_html(f"""
-        <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-top: 4px solid #1d4ed8; border-radius: 14px; padding: 2.5rem 2.25rem 2rem 2.25rem; text-align: center; box-shadow: 0 1px 3px rgba(11,15,25,0.04); margin-bottom: 1.75rem;">
-            <div style="display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 50%; background-color: #eff6ff; border: 1.5px solid #bfdbfe; margin-bottom: 0.95rem;">
-                {icon(ICON_SHIELD_CHECK, size=24, color="#1d4ed8")}
+    with st.container(border=True):
+        st.markdown(
+            clean_html(f"""
+            <div style="text-align: center; padding: 1.25rem 1rem 0.5rem 1rem;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background-color: #eff6ff; border: 1.5px solid #bfdbfe; margin-bottom: 0.85rem;">
+                    {icon(ICON_SHIELD_CHECK, size=24, color="#1d4ed8")}
+                </div>
+                <div style="font-family: 'Merriweather', serif; font-size: 1.5rem; font-weight: 700; color: #0b0f19; margin-bottom: 0.45rem;">
+                    Siap Menyampaikan Laporan Secara Aman?
+                </div>
+                <p style="font-size: 0.95rem; color: #64748b; max-width: 660px; margin: 0 auto 1.5rem auto; line-height: 1.65;">
+                    Kerahasiaan identitas dan seluruh berkas bukti Anda terlindungi secara penuh di bawah payung hukum UU PDP No. 27/2022 dengan enkripsi tingkat tinggi.
+                </p>
             </div>
-            <div style="font-family: 'Merriweather', serif; font-size: 1.5rem; font-weight: 700; color: #0b0f19; margin-bottom: 0.5rem;">
-                Siap Menyampaikan Laporan Secara Aman?
-            </div>
-            <p style="font-size: 0.95rem; color: #64748b; max-width: 660px; margin: 0 auto; line-height: 1.65;">
-                Kerahasiaan identitas dan seluruh berkas bukti Anda terlindungi secara penuh di bawah payung hukum UU PDP No. 27/2022 dengan enkripsi kriptografis tingkat tinggi.
-            </p>
-        </div>
-        """),
-        unsafe_allow_html=True
-    )
+            """),
+            unsafe_allow_html=True
+        )
 
-    _, col_b1, col_b2, _ = st.columns([1.2, 1.1, 1.1, 1.2])
-    with col_b1:
-        if st.button("Mulai Buat Pengaduan", key="cta_bottom_lapor", type="primary", use_container_width=True):
-            st.session_state.auth_default_tab = "pelapor"
-            st.session_state.current_page = "auth"
-            st.rerun()
-    with col_b2:
-        if st.button("Portal Petugas Investigasi", key="cta_bottom_inv", type="secondary", use_container_width=True):
-            st.session_state.auth_default_tab = "investigator"
-            st.session_state.current_page = "auth"
-            st.rerun()
+        _, col_b1, col_b2, _ = st.columns([1.2, 1.2, 1.2, 1.2])
+        with col_b1:
+            if st.button("Mulai Buat Pengaduan", key="cta_bottom_lapor", type="primary", use_container_width=True):
+                st.session_state.auth_default_tab = "pelapor"
+                st.session_state.current_page = "auth"
+                st.rerun()
+        with col_b2:
+            if st.button("Portal Petugas Investigasi", key="cta_bottom_inv", type="secondary", use_container_width=True):
+                st.session_state.auth_default_tab = "investigator"
+                st.session_state.current_page = "auth"
+                st.rerun()
+        st.markdown("<div style='margin-bottom: 0.5rem;'></div>", unsafe_allow_html=True)
 
     # 6. Global Formal Footer
     st.markdown("<div id='bantuan' style='scroll-margin-top: 5rem;'></div>", unsafe_allow_html=True)

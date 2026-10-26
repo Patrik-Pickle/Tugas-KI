@@ -50,7 +50,7 @@ div[data-testid="stMainBlockContainer"] > div.stElementContainer:nth-child(2) {
   height: 0 !important;
 }
 
-/* Proportional Website Container - Natural Margin with 1440px max bounding box */
+/* Proportional Website Container - Wide Ergonomic Layout with 1680px bounding box */
 @media (min-width: 0px) {
   .stApp [data-testid="stMainBlockContainer"],
   [data-testid="stMainBlockContainer"],
@@ -438,6 +438,18 @@ button[kind="secondary"]:hover p {
   color: #1e40af !important;
 }
 
+/* Tactile Press Feedback for all buttons */
+button[data-testid="stBaseButton-primary"]:active,
+div.stButton > button[data-testid="stBaseButton-primary"]:active,
+button[data-testid="stBaseButton-secondaryFormSubmit"]:active,
+button[data-testid="stBaseButton-secondary"]:active,
+div.stButton > button[data-testid="stBaseButton-secondary"]:active,
+button[kind="secondary"]:active,
+div.stDownloadButton > button:active {
+  transform: scale(0.985) !important;
+  transition: transform 0.08s ease !important;
+}
+
 /* Download Buttons */
 div.stDownloadButton > button {
   background-color: #ffffff !important;
@@ -445,6 +457,7 @@ div.stDownloadButton > button {
   border: 1px solid #bfdbfe !important;
   border-radius: 8px !important;
   font-weight: 600 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 div.stDownloadButton > button:hover {
@@ -464,6 +477,7 @@ button[data-baseweb="tab"] {
   font-size: 0.92rem !important;
   border: none !important;
   padding: 0.65rem 1.25rem !important;
+  transition: color 0.2s ease, border-color 0.2s ease !important;
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
@@ -599,6 +613,7 @@ div[data-testid="stRadio"] label p {
   box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
   max-height: 320px;
   overflow-y: auto;
+  animation: sovereignRevealUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Native Sidebar: completely hidden in favor of top-left three-dot profile popover */
@@ -654,4 +669,65 @@ div[data-testid="stPopoverBody"] {
   padding: 1.15rem 1rem !important;
   min-width: 250px !important;
   max-width: 280px !important;
+}
+
+/* Sovereign Motion System: Pure CSS Micro-Animations */
+.sovereign-card-interactive {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+}
+
+.sovereign-card-interactive:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 22px -3px rgba(11, 15, 25, 0.08), 0 4px 6px -2px rgba(11, 15, 25, 0.03) !important;
+}
+
+@keyframes sovereignRevealUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.decrypted-card-reveal {
+  animation: sovereignRevealUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Forensic Scanner Sweep (Linear Sweep) */
+.forensic-scanner-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.forensic-scanner-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+  animation: scannerLineMove 3.2s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scannerLineMove {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
 }

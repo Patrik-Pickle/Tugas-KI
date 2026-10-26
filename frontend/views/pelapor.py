@@ -40,8 +40,7 @@ def render_pelapor_view():
 
     # Header in main content area with top-left profile popover
     render_sovereign_header(
-        title="SecureReport : Portal Pelapor",
-        subtitle="Ruang Kerja Terenkripsi End-to-End dengan Jaminan Perlindungan Data Pribadi (UU PDP No. 27/2022)"
+        title="SecureReport : Portal Pelapor"
     )
 
     tab_create, tab_history = st.tabs(["Buat Laporan Terenkripsi", "Riwayat Laporan Saya"])
@@ -53,7 +52,7 @@ def render_pelapor_view():
             # Sticky-like reassurance and compliance panel
             st.markdown(
                 clean_html(f"""
-                <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.35rem 1.5rem; box-shadow: 0 1px 3px rgba(11,15,25,0.05); margin-bottom: 1.25rem;">
+                <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 1.35rem 1.5rem; box-shadow: 0 1px 3px rgba(11,15,25,0.05); margin-bottom: 1.25rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.85rem;">
                         {icon(ICON_SHIELD_CHECK, size=20, color="#1d4ed8")}
                         <span style="font-weight: 700; color: #0b0f19; font-size: 0.95rem;">Jaminan Kerahasiaan</span>
@@ -215,7 +214,7 @@ def render_pelapor_view():
                 ticket_code = disp.get("tracking_token", f"WBS-{rep['id']:05d}")
                 st.markdown(
                     clean_html(f"""
-                    <div style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 1.15rem 1.35rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(11,15,25,0.04);">
+                    <div class="sovereign-card-interactive" style="background-color: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 1.15rem 1.35rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(11,15,25,0.04);">
                         <div>
                             <div style="font-weight: 700; color: #0b0f19; font-size: 0.98rem; display: flex; align-items: center; gap: 0.45rem;">
                                 {icon(ICON_FILE_TEXT, size=18, color="#1d4ed8")}

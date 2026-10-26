@@ -17,6 +17,7 @@ import streamlit as st
 import database
 import csprng_utils
 import disposition_service
+import forensic_utils
 import importlib
 
 import views.landing
@@ -37,6 +38,7 @@ import components.tracking_db
 # Modul backend dan komponen harus di-reload terlebih dahulu sebelum views yang mengimpornya
 importlib.reload(csprng_utils)
 importlib.reload(disposition_service)
+importlib.reload(forensic_utils)
 importlib.reload(components.icons)
 importlib.reload(components.utils)
 importlib.reload(components.layout)
