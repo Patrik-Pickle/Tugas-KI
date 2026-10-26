@@ -276,6 +276,14 @@ def render_investigator_view():
 
             if do_decrypt:
                 with st.spinner("Mendekripsi berkas bukti forensik..."):
+                    # Generate key untuk dekripsi
+                    try:
+                        user_password = report["reporter"]
+                    except (KeyError, IndexError, TypeError):
+                        user_password = "UserPass123!"
+                    user_salt = b'WBS_SecureSalt16'
+                    user_key = crypto_utils.derive_key(user_password, user_salt, report["cipher_used"])
+
                     decrypted_files = {}
                     for file_key, file_path, label in [
                         ("ktp", ktp_path, "KTP"),
@@ -286,7 +294,14 @@ def render_investigator_view():
                             try:
                                 with open(file_path, "rb") as f:
                                     enc_content = f.read()
-                                dec_content, dec_time = crypto_utils.decrypt_data(enc_content, report["cipher_used"])
+                                
+                                # [FIX] Tambahkan parameter user_key di argumen ke-3
+                                dec_content, dec_time = crypto_utils.decrypt_data(
+                                    enc_content, 
+                                    report["cipher_used"], 
+                                    user_key
+                                )
+                                
                                 decrypted_files[file_key] = {
                                     "bytes": dec_content,
                                     "time": dec_time,

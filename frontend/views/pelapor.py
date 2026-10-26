@@ -139,38 +139,45 @@ def render_pelapor_view():
 
                             total_bytes = 0
 
-                            # 1. Enkripsi teks kronologi
+                            # --- [1] GENERATE DERIVED KEY SENSITIF DARI SESSION USER ---
+                            user_password = user.get("username", "UserPass123!") # Menggunakan fallback aman
+                            user_salt = b'WBS_SecureSalt16' # 16-bytes static salt
+                            
+                            # Turunkan kunci dinamis dari PBKDF2 sesuai algoritma pilihan
+                            user_key = crypto_utils.derive_key(user_password, user_salt, selected_cipher)
+
+                            # --- [2] ENKRIPSI TEKS KRONOLOGI ---
                             chrono_bytes = report_chronology.encode("utf-8")
                             total_bytes += len(chrono_bytes)
-                            enc_chrono, text_time = crypto_utils.encrypt_data(chrono_bytes, selected_cipher)
+                            enc_chrono, text_time = crypto_utils.encrypt_data(chrono_bytes, selected_cipher, user_key)
 
                             timestamp_str = str(int(time.time()))
                             
-                            # 2. Enkripsi KTP
+                            # --- [3] ENKRIPSI KTP ---
                             ktp_bytes = uploaded_ktp.read()
                             total_bytes += len(ktp_bytes)
-                            enc_ktp, ktp_time = crypto_utils.encrypt_data(ktp_bytes, selected_cipher)
+                            enc_ktp, ktp_time = crypto_utils.encrypt_data(ktp_bytes, selected_cipher, user_key)
                             ktp_enc_filename = f"ktp_{timestamp_str}_{uploaded_ktp.name}.enc"
                             with open(os.path.join(STORAGE_DIR, ktp_enc_filename), "wb") as f:
                                 f.write(enc_ktp)
 
-                            # 3. Enkripsi Dokumen PDF
+                            # --- [4] ENKRIPSI DOKUMEN PDF ---
                             doc_bytes = uploaded_doc.read()
                             total_bytes += len(doc_bytes)
-                            enc_doc, doc_time = crypto_utils.encrypt_data(doc_bytes, selected_cipher)
+                            enc_doc, doc_time = crypto_utils.encrypt_data(doc_bytes, selected_cipher, user_key)
                             doc_enc_filename = f"doc_{timestamp_str}_{uploaded_doc.name}.enc"
                             with open(os.path.join(STORAGE_DIR, doc_enc_filename), "wb") as f:
                                 f.write(enc_doc)
 
-                            # 4. Enkripsi Video MP4
+                            # --- [5] ENKRIPSI VIDEO MP4 ---
                             video_bytes = uploaded_video.read()
                             total_bytes += len(video_bytes)
-                            enc_video, video_time = crypto_utils.encrypt_data(video_bytes, selected_cipher)
+                            enc_video, video_time = crypto_utils.encrypt_data(video_bytes, selected_cipher, user_key)
                             video_enc_filename = f"vid_{timestamp_str}_{uploaded_video.name}.enc"
                             with open(os.path.join(STORAGE_DIR, video_enc_filename), "wb") as f:
                                 f.write(enc_video)
 
-                            # 5. Simpan ke Database SQLite
+                            # --- [6] SIMPAN KE DATABASE SQLITE ---
                             report_id = database.create_report(
                                 user_id=user["id"],
                                 title=report_title,
