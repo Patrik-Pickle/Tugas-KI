@@ -9,3 +9,11 @@ sample_data/*
 .env
 *.db
 *.sqlite3
+
+tempCodeRunnerFile.py
+wbs_data.db
+storage/*.enc
+.vscode/
+DESIGN.md
+design.md_sovereign_trust.md
+penugasan.md

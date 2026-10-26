@@ -1,0 +1,733 @@
+/* Sovereign Trust Design System CSS & Architectural Layout */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --surface: #f9f9ff;
+  --surface-card: #ffffff;
+  --on-surface: #0b0f19;
+  --on-surface-muted: #4b5563;
+  --outline: #e2e8f0;
+  --outline-border: #cbd5e1;
+  --primary: #1d4ed8;
+  --primary-hover: #1e40af;
+  --primary-container: #eff6ff;
+  --font-serif: 'Merriweather', Georgia, serif;
+  --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Force light app canvas */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"], .stApp {
+  background-color: #f9f9ff !important;
+  color: #0b0f19 !important;
+  font-family: var(--font-sans) !important;
+}
+
+/* Streamlit Native Header: completely hidden since navbar handles all navigation */
+header[data-testid="stHeader"],
+[data-testid="stHeader"] {
+  display: none !important;
+  height: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Hide default decoration line and deploy/menu toolbar buttons */
+header[data-testid="stHeader"] [data-testid="stToolbar"],
+div[data-testid="stDecoration"] {
+  display: none !important;
+  height: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Hide empty script/style element containers before navbar to eliminate flex gap */
+div[data-testid="stMainBlockContainer"] > div.stElementContainer:has(style),
+div[data-testid="stMainBlockContainer"] > div.stElementContainer:has(script),
+div[data-testid="stMainBlockContainer"] > div.stElementContainer:first-child,
+div[data-testid="stMainBlockContainer"] > div.stElementContainer:nth-child(2) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 0 !important;
+}
+
+/* Proportional Website Container - Wide Ergonomic Layout with 1680px bounding box */
+@media (min-width: 0px) {
+  .stApp [data-testid="stMainBlockContainer"],
+  [data-testid="stMainBlockContainer"],
+  .stMainBlockContainer,
+  .block-container,
+  div.block-container,
+  section[data-testid="stMain"] > div:first-child {
+    padding-top: 0 !important;
+    padding-bottom: 3.5rem !important;
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+    max-width: 1680px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* Header Navbar: Scoped precisely to containers containing .nav-marker or the top navbar block (Image 2 style) */
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: none !important;
+  border-bottom: 1.5px solid #e2e8f0 !important;
+  border-radius: 0 0 12px 12px !important;
+  padding: 0.75rem 1rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 2rem !important;
+  align-items: center !important;
+  box-shadow: 0 2px 6px rgba(11, 15, 25, 0.03) !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div[data-testid="column"],
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div[data-testid="stColumn"] {
+  display: flex !important;
+  align-items: center !important;
+  min-height: 44px !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div[data-testid="column"]:first-child,
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div[data-testid="stColumn"]:first-child {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div[data-testid="column"]:nth-child(2),
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) > div[data-testid="stColumn"]:nth-child(2) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) div.stElementContainer {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) div[data-testid="stMarkdownContainer"],
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) div[data-testid="stMarkdownContainer"] > p {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  line-height: 1 !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) .stButton {
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  pointer-events: auto !important;
+}
+
+div[data-testid="stHorizontalBlock"]:has(.nav-marker) .stButton > button {
+  margin: 0 !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 10000 !important;
+}
+
+/* Horizontal Navbar Anchor Links (Matching Reference Image 2) */
+.sovereign-nav-link {
+  color: #4b5563 !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.88rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease !important;
+  padding: 0.4rem 0.75rem !important;
+  border-radius: 6px !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+}
+
+.sovereign-nav-link:hover {
+  color: #1d4ed8 !important;
+  background-color: #eff6ff !important;
+  font-weight: 600 !important;
+}
+
+html {
+  scroll-behavior: smooth !important;
+}
+
+/* Typography Overrides */
+h1, h2, h3, h4, h5, h6, .sovereign-heading {
+  font-family: var(--font-serif) !important;
+  color: #0b0f19;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em;
+}
+
+/* Force pure white for all elements inside auth showcase box */
+.auth-showcase-box,
+.auth-showcase-box h1,
+.auth-showcase-box h2,
+.auth-showcase-box h3,
+.auth-showcase-box p,
+.auth-showcase-box span,
+.auth-showcase-box div,
+.auth-showcase-box a {
+  color: #ffffff !important;
+}
+
+p, span, label, div {
+  font-family: var(--font-sans);
+}
+
+/* Forms as Sovereign Trust White Cards */
+div[data-testid="stForm"] {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 1.75rem 2rem !important;
+  box-shadow: 0 1px 3px 0 rgba(11, 15, 25, 0.06), 0 1px 2px 0 rgba(11, 15, 25, 0.04) !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* Text Inputs & Textareas - Explicit White with Dark Text */
+div.stTextInput > div,
+div.stTextInput > div > div,
+div.stPasswordInput > div,
+div.stPasswordInput > div > div,
+div.stTextArea > div,
+div.stTextArea > div > div,
+div[data-baseweb="input"],
+div[data-baseweb="base-input"],
+div[data-baseweb="textarea"],
+input,
+textarea {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0b0f19 !important;
+  border-color: #cbd5e1 !important;
+  border-radius: 8px !important;
+}
+
+div.stTextInput input,
+div.stPasswordInput input,
+div.stTextArea textarea,
+div[data-baseweb="input"] input,
+div[data-baseweb="base-input"] input,
+div[data-baseweb="textarea"] textarea {
+  color: #0b0f19 !important;
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.92rem !important;
+}
+
+/* Password Toggle Icon Button */
+div.stPasswordInput button,
+div[data-baseweb="input"] button {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #64748b !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: auto !important;
+  padding: 0 0.5rem !important;
+}
+
+div[data-baseweb="input"] input::placeholder,
+div[data-baseweb="textarea"] textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+div[data-baseweb="input"]:focus-within,
+div[data-baseweb="textarea"]:focus-within {
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.15) !important;
+}
+
+/* Selectbox / Dropdown Control Box (Universal for Streamlit 1.66+ & BaseWeb) */
+div[data-testid="stSelectbox"] div[class*="e1oobldh0"],
+div.stSelectbox div[class*="e1oobldh0"],
+div[data-testid="stSelectbox"] div:has(> input),
+div.stSelectbox div:has(> input),
+div[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+div.stSelectbox [data-baseweb="select"] > div {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #0b0f19 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  padding: 0 0.5rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+/* Hover state */
+div[data-testid="stSelectbox"] div[class*="e1oobldh0"]:hover,
+div.stSelectbox div[class*="e1oobldh0"]:hover,
+div[data-testid="stSelectbox"] div:has(> input):hover,
+div[data-testid="stSelectbox"] [data-baseweb="select"] > div:hover {
+  border-color: #94a3b8 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Focus / Active state */
+div[data-testid="stSelectbox"] div[class*="e1oobldh0"]:focus-within,
+div.stSelectbox div[class*="e1oobldh0"]:focus-within,
+div[data-testid="stSelectbox"] div[class*="e1oobldh0"][data-focus-within],
+div[data-testid="stSelectbox"] div:has(> input):focus-within,
+div[data-testid="stSelectbox"] [data-baseweb="select"]:focus-within > div {
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.15) !important;
+}
+
+/* Text / Value inside the selectbox input */
+div[data-testid="stSelectbox"] input,
+div[data-testid="stSelectbox"] input[class*="e1oobldh1"],
+div[data-testid="stSelectbox"] [data-baseweb="select"] [data-testid="stMarkdownContainer"] p,
+div[data-testid="stSelectbox"] [data-baseweb="select"] span,
+div[data-testid="stSelectbox"] [data-baseweb="select"] div {
+  color: #0b0f19 !important;
+  background-color: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.92rem !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+}
+
+/* Dropdown Arrow / Chevron */
+div[data-testid="stSelectbox"] svg {
+  fill: #475569 !important;
+  color: #475569 !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Dropdown Popover & Options Menu (Streamlit 1.66+ & BaseWeb) */
+div[data-testid="stSelectboxVirtualDropdown"],
+ul[data-testid="stSelectboxVirtualDropdown"],
+div[data-baseweb="popover"],
+div[data-baseweb="menu"],
+ul[role="listbox"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  padding: 0.35rem 0 !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] li,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"],
+li[role="option"] {
+  color: #0b0f19 !important;
+  background-color: #ffffff !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.88rem !important;
+  padding: 0.6rem 1rem !important;
+  cursor: pointer !important;
+}
+
+div[data-testid="stSelectboxVirtualDropdown"] li:hover,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover,
+div[data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"],
+li[role="option"]:hover,
+li[role="option"][aria-selected="true"] {
+  background-color: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+/* Labels */
+label[data-testid="stWidgetLabel"],
+label[data-testid="stWidgetLabel"] p {
+  color: #1f2937 !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+}
+
+/* Primary Action & Submit Buttons */
+button[data-testid="stBaseButton-primary"],
+div.stButton > button[data-testid="stBaseButton-primary"],
+button[data-testid="stBaseButton-secondaryFormSubmit"],
+button[kind="primary"],
+button[kind="secondaryFormSubmit"] {
+  background-color: #1d4ed8 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 0.65rem 1.25rem !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.15s ease-in-out !important;
+  width: 100% !important;
+}
+
+button[data-testid="stBaseButton-primary"]:hover,
+div.stButton > button[data-testid="stBaseButton-primary"]:hover,
+button[data-testid="stBaseButton-secondaryFormSubmit"]:hover {
+  background-color: #1e40af !important;
+  box-shadow: 0 4px 6px -1px rgba(29, 78, 216, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+button[data-testid="stBaseButton-primary"] p,
+div.stButton > button[data-testid="stBaseButton-primary"] p,
+button[data-testid="stBaseButton-secondaryFormSubmit"] p {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+/* Secondary Button (Outline) */
+button[data-testid="stBaseButton-secondary"],
+div.stButton > button[data-testid="stBaseButton-secondary"],
+button[kind="secondary"],
+div.stButton > button[kind="secondary"] {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+  border: 1.5px solid #bfdbfe !important;
+  border-radius: 8px !important;
+  padding: 0.65rem 1.25rem !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.15s ease-in-out !important;
+  width: 100% !important;
+}
+
+button[data-testid="stBaseButton-secondary"]:hover,
+div.stButton > button[data-testid="stBaseButton-secondary"]:hover,
+button[kind="secondary"]:hover {
+  background-color: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1e40af !important;
+  transform: translateY(-1px);
+}
+
+button[data-testid="stBaseButton-secondary"] p,
+div.stButton > button[data-testid="stBaseButton-secondary"] p,
+button[kind="secondary"] p {
+  color: #1d4ed8 !important;
+  font-weight: 600 !important;
+}
+
+button[data-testid="stBaseButton-secondary"]:hover p,
+div.stButton > button[data-testid="stBaseButton-secondary"]:hover p,
+button[kind="secondary"]:hover p {
+  color: #1e40af !important;
+}
+
+/* Tactile Press Feedback for all buttons */
+button[data-testid="stBaseButton-primary"]:active,
+div.stButton > button[data-testid="stBaseButton-primary"]:active,
+button[data-testid="stBaseButton-secondaryFormSubmit"]:active,
+button[data-testid="stBaseButton-secondary"]:active,
+div.stButton > button[data-testid="stBaseButton-secondary"]:active,
+button[kind="secondary"]:active,
+div.stDownloadButton > button:active {
+  transform: scale(0.985) !important;
+  transition: transform 0.08s ease !important;
+}
+
+/* Download Buttons */
+div.stDownloadButton > button {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+div.stDownloadButton > button:hover {
+  background-color: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+}
+
+div.stDownloadButton > button p {
+  color: #1d4ed8 !important;
+}
+
+/* Streamlit Tabs Navigation */
+button[data-baseweb="tab"] {
+  background-color: transparent !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  font-size: 0.92rem !important;
+  border: none !important;
+  padding: 0.65rem 1.25rem !important;
+  transition: color 0.2s ease, border-color 0.2s ease !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+  color: #1d4ed8 !important;
+  border-bottom: 2.5px solid #1d4ed8 !important;
+}
+
+button[data-baseweb="tab"] p {
+  color: inherit !important;
+  font-weight: 600 !important;
+}
+
+/* File Uploader Container */
+[data-testid="stFileUploader"] {
+  background-color: #ffffff !important;
+  border: 1px dashed #cbd5e1 !important;
+  border-radius: 8px !important;
+  padding: 0.75rem 1rem !important;
+}
+
+[data-testid="stFileUploader"] section {
+  background-color: #f8fafc !important;
+}
+
+[data-testid="stFileUploader"] span,
+[data-testid="stFileUploader"] small,
+[data-testid="stFileUploader"] p {
+  color: #475569 !important;
+}
+
+/* Radio buttons & text */
+div[data-testid="stRadio"] label p {
+  color: #1f2937 !important;
+}
+
+/* Sovereign Badges */
+.sovereign-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.badge-verified {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-primary {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-warning {
+  background-color: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+/* Metric Cards */
+.metric-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.15rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(11, 15, 25, 0.04);
+  text-align: center;
+}
+
+.metric-value {
+  font-family: var(--font-serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  margin: 0.25rem 0;
+}
+
+.metric-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Reusable Sovereign Card */
+.sovereign-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 1px 3px rgba(11, 15, 25, 0.05);
+}
+
+.sovereign-card-compact {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgba(11, 15, 25, 0.04);
+}
+
+/* Cipher readout & plaintext boxes */
+.cipher-telemetry-box {
+  background-color: #0f172a;
+  color: #38bdf8;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  word-break: break-all;
+  white-space: pre-wrap;
+  border: 1px solid #1e293b;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cipher-plaintext-box {
+  background-color: #f8fafc;
+  color: #0b0f19;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  border: 1.5px solid #10b981;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.1);
+  max-height: 320px;
+  overflow-y: auto;
+  animation: sovereignRevealUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Native Sidebar: completely hidden in favor of top-left three-dot profile popover */
+section[data-testid="stSidebar"],
+[data-testid="stSidebar"],
+div[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapseButton"] {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Three-dot (Kebab) Profile Menu Popover Styling */
+div[data-testid="stPopover"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+div[data-testid="stPopover"] > button {
+  height: 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
+  max-width: 40px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.4rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+  color: #1d4ed8 !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px rgba(11, 15, 25, 0.04) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+div[data-testid="stPopover"] > button:hover {
+  background-color: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1e40af !important;
+}
+
+div[data-testid="stPopoverBody"] {
+  background-color: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(11, 15, 25, 0.08) !important;
+  padding: 1.15rem 1rem !important;
+  min-width: 250px !important;
+  max-width: 280px !important;
+}
+
+/* Sovereign Motion System: Pure CSS Micro-Animations */
+.sovereign-card-interactive {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+}
+
+.sovereign-card-interactive:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 22px -3px rgba(11, 15, 25, 0.08), 0 4px 6px -2px rgba(11, 15, 25, 0.03) !important;
+}
+
+@keyframes sovereignRevealUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.decrypted-card-reveal {
+  animation: sovereignRevealUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Forensic Scanner Sweep (Linear Sweep) */
+.forensic-scanner-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.forensic-scanner-container::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+  animation: scannerLineMove 3.2s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scannerLineMove {
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
