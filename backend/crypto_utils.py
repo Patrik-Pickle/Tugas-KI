@@ -5,6 +5,7 @@ from Crypto.Util.Padding import pad, unpad
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Hash import SHA256
 import hashlib
+import hmac
 
 def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
     cipher_name = cipher_name.upper()
@@ -18,6 +19,15 @@ def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
         100000,
         dklen=key_len
     )
+
+def _mac_key(key: bytes) -> bytes:
+    return hashlib.sha256(key + b"mac").digest()
+
+def get_report_key(salt: bytes, cipher_name: str) -> bytes:
+    master = os.environ.get("WBS_MASTER_KEY")
+    if not master:
+        raise RuntimeError("Environment variable WBS_MASTER_KEY belum di-set.")
+    return derive_key(master, salt, cipher_name)
 
 
 def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes, float]:
@@ -37,13 +47,15 @@ def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes
         final_payload = iv + ciphertext
         
     elif cipher_name == 'RC4':
-        cipher = ARC4.new(key)
-        ciphertext = cipher.encrypt(data_bytes)
-        final_payload = ciphertext
+        nonce = os.urandom(16)
+        rc4_key = hashlib.sha256(key + nonce).digest()[:16]
+        ciphertext = ARC4.new(rc4_key).encrypt(data_bytes)
+        final_payload = nonce + ciphertext
         
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")
         
+    final_payload += hmac.new(_mac_key(key), final_payload, hashlib.sha256).digest()
     elapsed_time = time.perf_counter() - start_time
     return final_payload, elapsed_time
 
@@ -51,6 +63,14 @@ def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes
 def decrypt_data(encrypted_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes, float]:
     cipher_name = cipher_name.upper()
     start_time = time.perf_counter()
+
+    if len(encrypted_bytes) < 32:
+        raise ValueError("Integritas gagal: data terlalu pendek")
+    body, tag = encrypted_bytes[:-32], encrypted_bytes[-32:]
+    expected = hmac.new(_mac_key(key), body, hashlib.sha256).digest()
+    if not hmac.compare_digest(tag, expected):
+        raise ValueError("Integritas gagal: data telah diubah atau kunci salah")
+    encrypted_bytes = body
     
     if cipher_name == 'AES':
         iv = encrypted_bytes[:16]
@@ -67,8 +87,9 @@ def decrypt_data(encrypted_bytes: bytes, cipher_name: str, key: bytes) -> tuple[
         plaintext = unpad(decrypted_padded, DES.block_size)
         
     elif cipher_name == 'RC4':
-        cipher = ARC4.new(key)
-        plaintext = cipher.decrypt(encrypted_bytes)
+        nonce, ciphertext = encrypted_bytes[:16], encrypted_bytes[16:]
+        rc4_key = hashlib.sha256(key + nonce).digest()[:16]
+        plaintext = ARC4.new(rc4_key).decrypt(ciphertext)
         
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")

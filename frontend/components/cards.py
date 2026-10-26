@@ -23,7 +23,7 @@ def render_cipher_selector():
             <span>Algoritma Kriptografi Pengaman</span>
         </div>
         <p style="color: #64748b; font-size: 0.84rem; margin-bottom: 0.75rem;">
-            Pilih standar algoritma cipher yang akan digunakan untuk mengenkripsi teks narasi dan seluruh berkas fisik bukti secara lokal:
+            Pilih standar algoritma cipher yang akan digunakan untuk mengenkripsi teks narasi dan seluruh berkas fisik bukti:
         </p>
         """),
         unsafe_allow_html=True
@@ -35,7 +35,7 @@ def render_cipher_selector():
             "badge": "Direkomendasikan (NIST Standard)",
             "badge_class": "badge-verified",
             "icon_name": ICON_SHIELD_CHECK,
-            "desc": "Standar keamanan internasional tertinggi. Enkripsi blok 128-bit dengan Initialization Vector (IV) acak unik dan perlindungan anti-tamper.",
+            "desc": "Standar keamanan internasional tertinggi. Enkripsi blok 128-bit dengan Initialization Vector (IV) acak unik.",
             "color": "#1d4ed8"
         },
         "DES": {
@@ -151,7 +151,7 @@ def render_benchmark_summary(metrics: dict):
             </div>
             <div style="font-size: 0.8rem; color: #64748b; display: flex; align-items: center; gap: 0.4rem;">
                 {icon(ICON_BINARY, size=15, color="#1d4ed8")}
-                <span>Tiket ID Laporan: <code style="font-family: 'JetBrains Mono', monospace; color: #1d4ed8; font-weight: 600;">WBS-{metrics.get('report_id', 0):05d}</code> | Cipher Aktif: <b>{metrics.get('cipher', 'N/A')}</b></span>
+                <span>Tiket ID Laporan: <code style="font-family: 'JetBrains Mono', monospace; color: #1d4ed8; font-weight: 600;">{metrics.get('ticket_code', '-')}</code> | Cipher Aktif: <b>{metrics.get('cipher', 'N/A')}</b></span>
             </div>
         </div>
         """),

@@ -14,7 +14,7 @@ def render_footer():
                     <span style="font-family: 'Merriweather', serif; font-weight: 700; font-size: 1.05rem; color: #0b0f19;">SecureReport</span>
                 </div>
                 <div style="color: #64748b; font-size: 0.82rem; line-height: 1.5;">
-                    Sistem Pengaduan Pelanggaran Aman (Whistleblowing System) dengan enkripsi multi-cipher end-to-end.
+                    Sistem Pengaduan Pelanggaran Aman (Whistleblowing System) dengan enkripsi multi-cipher.
                 </div>
             </div>
             <div>

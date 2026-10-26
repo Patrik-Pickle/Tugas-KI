@@ -4,6 +4,7 @@ Komponen Presentasi UI untuk Pelacakan Laporan dan Disposisi Kasus.
 Mengonsumsi layanan basis data dan utilitas CSPRNG dari backend/disposition_service.py
 dan backend/csprng_utils.py.
 """
+from html import escape as html_escape
 
 from disposition_service import (
     STATUS_PENDING,
@@ -101,7 +102,7 @@ def render_tracking_timeline(
         s3_badge = '<span style="background:#f1f5f9;color:#64748b;padding:3px 10px;border-radius:12px;font-size:0.74rem;font-weight:600;white-space:nowrap;display:inline-block;">Menunggu Putusan</span>'
 
     notes_section = ""
-    safe_notes = (notes or "").strip().replace("\n", "<br>")
+    safe_notes = html_escape((notes or "").strip()).replace("\n", "<br>")
 
     if is_decided:
         # Tampilan Formal Lembar Putusan Resmi
@@ -123,7 +124,7 @@ def render_tracking_timeline(
                         Surat Ketetapan / Berita Acara Putusan Resmi
                     </div>
                     <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.02rem; font-weight: 700; color: #0f172a; margin-top: 0.15rem;">
-                        {dec_num}
+                        {html_escape(dec_num)}
                     </div>
                 </div>
                 <div style="text-align: right;">
@@ -137,7 +138,7 @@ def render_tracking_timeline(
                     Klasifikasi Amar Putusan Kasus:
                 </div>
                 <div style="font-size: 0.92rem; font-weight: 700; color: {verd_color}; margin-top: 0.2rem;">
-                    {verd_cat}
+                    {html_escape(verd_cat)}
                 </div>
             </div>
 

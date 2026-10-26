@@ -3,6 +3,7 @@ import time
 import streamlit as st
 import database
 import crypto_utils
+import html
 from components.header import render_sovereign_header
 from components.cards import render_cipher_selector, render_benchmark_summary
 from components.icons import (
@@ -58,7 +59,7 @@ def render_pelapor_view():
                         <span style="font-weight: 700; color: #0b0f19; font-size: 0.95rem;">Jaminan Kerahasiaan</span>
                     </div>
                     <p style="font-size: 0.84rem; color: #475569; line-height: 1.55; margin-bottom: 0.85rem;">
-                        Seluruh kronologi dan 3 berkas bukti dienkripsi di peramban Anda sebelum dikirim ke peladen. Kunci privat tidak tersimpan dalam bentuk teks biasa.
+                        Seluruh kronologi dan 3 berkas bukti dienkripsi di peladen sebelum disimpan. Kunci enkripsi diturunkan dari kunci utama server dan tidak disimpan dalam bentuk teks biasa.
                     </p>
                     <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.65rem 0.85rem; font-size: 0.78rem; color: #1e40af; line-height: 1.45;">
                         <b>Dasar Hukum:</b> Dilindungi secara mutlak oleh UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi.
@@ -83,7 +84,7 @@ def render_pelapor_view():
             st.markdown(
                 callout(
                     title="Formulir Pengaduan Terlindungi & Terenkripsi Otomatis",
-                    message="Identitas Anda dan seluruh berkas bukti dienkripsi secara lokal sebelum dikirim ke peladen. Kunci privat terlindungi penuh.",
+                    message="Identitas Anda dan seluruh berkas bukti dienkripsi di peladen sebelum disimpan. Kunci privat terlindungi penuh.",
                     icon_name=ICON_SHIELD_CHECK,
                     variant="blue"
                 ),
@@ -140,24 +141,21 @@ def render_pelapor_view():
                             total_bytes = 0
 
                             # --- [1] GENERATE DERIVED KEY SENSITIF DARI SESSION USER ---
-                            user_password = user.get("username", "UserPass123!") # Menggunakan fallback aman
-                            user_salt = b'WBS_SecureSalt16' # 16-bytes static salt
-                            
-                            # Turunkan kunci dinamis dari PBKDF2 sesuai algoritma pilihan
-                            user_key = crypto_utils.derive_key(user_password, user_salt, selected_cipher)
+                            report_salt = os.urandom(16)
+                            user_key = crypto_utils.get_report_key(report_salt, selected_cipher)
 
                             # --- [2] ENKRIPSI TEKS KRONOLOGI ---
                             chrono_bytes = report_chronology.encode("utf-8")
                             total_bytes += len(chrono_bytes)
                             enc_chrono, text_time = crypto_utils.encrypt_data(chrono_bytes, selected_cipher, user_key)
 
-                            timestamp_str = str(int(time.time()))
+                            timestamp_str = str(int(time.time() * 1000))
                             
                             # --- [3] ENKRIPSI KTP ---
                             ktp_bytes = uploaded_ktp.read()
                             total_bytes += len(ktp_bytes)
                             enc_ktp, ktp_time = crypto_utils.encrypt_data(ktp_bytes, selected_cipher, user_key)
-                            ktp_enc_filename = f"ktp_{timestamp_str}_{uploaded_ktp.name}.enc"
+                            ktp_enc_filename = f"ktp_{timestamp_str}_{os.path.basename(uploaded_ktp.name)}.enc"
                             with open(os.path.join(STORAGE_DIR, ktp_enc_filename), "wb") as f:
                                 f.write(enc_ktp)
 
@@ -165,7 +163,7 @@ def render_pelapor_view():
                             doc_bytes = uploaded_doc.read()
                             total_bytes += len(doc_bytes)
                             enc_doc, doc_time = crypto_utils.encrypt_data(doc_bytes, selected_cipher, user_key)
-                            doc_enc_filename = f"doc_{timestamp_str}_{uploaded_doc.name}.enc"
+                            doc_enc_filename = f"doc_{timestamp_str}_{os.path.basename(uploaded_doc.name)}.enc"
                             with open(os.path.join(STORAGE_DIR, doc_enc_filename), "wb") as f:
                                 f.write(enc_doc)
 
@@ -173,7 +171,7 @@ def render_pelapor_view():
                             video_bytes = uploaded_video.read()
                             total_bytes += len(video_bytes)
                             enc_video, video_time = crypto_utils.encrypt_data(video_bytes, selected_cipher, user_key)
-                            video_enc_filename = f"vid_{timestamp_str}_{uploaded_video.name}.enc"
+                            video_enc_filename = f"vid_{timestamp_str}_{os.path.basename(uploaded_video.name)}.enc"
                             with open(os.path.join(STORAGE_DIR, video_enc_filename), "wb") as f:
                                 f.write(enc_video)
 
@@ -185,7 +183,8 @@ def render_pelapor_view():
                                 ktp_filename=ktp_enc_filename,
                                 doc_filename=doc_enc_filename,
                                 video_filename=video_enc_filename,
-                                cipher_used=selected_cipher
+                                cipher_used=selected_cipher,
+                                salt=report_salt
                             )
 
                             total_time = text_time + ktp_time + doc_time + video_time
@@ -197,6 +196,7 @@ def render_pelapor_view():
                             benchmark_metrics = {
                                 "report_id": report_id,
                                 "cipher": selected_cipher,
+                                "ticket_code": ticket_code,
                                 "text_time": text_time,
                                 "ktp_time": ktp_time,
                                 "doc_time": doc_time,
@@ -225,7 +225,7 @@ def render_pelapor_view():
                         <div>
                             <div style="font-weight: 700; color: #0b0f19; font-size: 0.98rem; display: flex; align-items: center; gap: 0.45rem;">
                                 {icon(ICON_FILE_TEXT, size=18, color="#1d4ed8")}
-                                <span>{ticket_code} : {rep['title']}</span>
+                                <span>{ticket_code} : {html.escape(rep['title'])}</span>
                             </div>
                             <div style="color: #64748b; font-size: 0.82rem; margin-top: 0.25rem; margin-left: 1.55rem; display: flex; gap: 0.85rem; align-items: center;">
                                 <span>Terkirim: {rep['created_at']}</span>

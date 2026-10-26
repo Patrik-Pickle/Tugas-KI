@@ -2,3 +2,4 @@ pycryptodome
 streamlit
 pandas
 matplotlib
+pillow
