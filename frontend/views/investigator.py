@@ -136,7 +136,7 @@ def render_investigator_view():
         selected_label = st.selectbox("Daftar Dossier Terdaftar:", list(report_options.keys()), label_visibility="collapsed")
         selected_id = report_options[selected_label]
         
-        report = database.get_report_by_id(selected_id)
+        report = database.get_report_by_id(selected_id, is_investigator=True)
         if not report:
             st.error("Dossier tidak ditemukan.")
             return
@@ -187,134 +187,266 @@ def render_investigator_view():
             unsafe_allow_html=True
         )
 
+    try:
         user_key = crypto_utils.get_report_key(report["salt"], report["cipher_used"])
+    except RuntimeError as re_err:
+        st.error(f"Kesalahan Kunci Master: {str(re_err)}. Harap set environment variable WBS_MASTER_KEY.")
+        render_footer()
+        return
 
-        col_c1, col_c2 = st.columns([1, 1])
-        with col_c1:
-            st.caption("Cuplikan Sandi Kriptografis (Ciphertext Hex BLOB):")
-            raw_blob = report["chronology_encrypted"]
-            hex_preview = raw_blob[:64].hex() + ("..." if len(raw_blob) > 64 else "")
-            st.markdown(f"<div class='cipher-telemetry-box'>{hex_preview}\n(Total Ukuran Cipher: {len(raw_blob)} bytes)</div>", unsafe_allow_html=True)
-            
-        with col_c2:
-            st.caption("Aksi Dekripsi Investigator:")
-            if st.button("Dekripsi Kronologi Teks", key=f"btn_dec_text_{report['id']}", use_container_width=True):
+    col_c1, col_c2 = st.columns([1, 1])
+    with col_c1:
+        st.caption("Cuplikan Sandi Kriptografis (Ciphertext Hex BLOB):")
+        raw_blob = report["chronology_encrypted"]
+        hex_preview = raw_blob[:64].hex() + ("..." if len(raw_blob) > 64 else "")
+        st.markdown(f"<div class='cipher-telemetry-box'>{hex_preview}\n(Total Ukuran Cipher: {len(raw_blob)} bytes)</div>", unsafe_allow_html=True)
+        
+    with col_c2:
+        st.caption("Aksi Dekripsi Investigator:")
+        if st.button("Dekripsi Kronologi Teks", key=f"btn_dec_text_{report['id']}", use_container_width=True):
+            try:
+                # Kronologi teks menggunakan DES-64-CBC sesuai pemetaan assignment dengan salt mandiri
+                salt_t = report.get("salt_text") or report["salt"]
+                chrono_key = crypto_utils.get_report_key(salt_t, "DES")
+                decrypted_bytes, dec_time = crypto_utils.decrypt_data(report["chronology_encrypted"], "DES", chrono_key)
+                st.session_state[f"dec_text_{report['id']}"] = {
+                    "text": decrypted_bytes.decode("utf-8", errors="replace"),
+                    "time": dec_time
+                }
+            except Exception as e:
+                # Fallback jika dienkripsi dengan AES/RC4
                 try:
-                    decrypted_bytes, dec_time = crypto_utils.decrypt_data(report["chronology_encrypted"], report["cipher_used"], user_key)
+                    fallback_key = crypto_utils.get_report_key(report["salt"], report["cipher_used"])
+                    decrypted_bytes, dec_time = crypto_utils.decrypt_data(report["chronology_encrypted"], report["cipher_used"], fallback_key)
                     st.session_state[f"dec_text_{report['id']}"] = {
                         "text": decrypted_bytes.decode("utf-8", errors="replace"),
                         "time": dec_time
                     }
-                except Exception as e:
-                    st.error(f"Gagal mendekripsi kronologi: {str(e)}")
+                except Exception as e2:
+                    st.error(f"Gagal mendekripsi kronologi: {str(e2)}")
 
-            if f"dec_text_{report['id']}" in st.session_state:
-                res = st.session_state[f"dec_text_{report['id']}"]
-                st.markdown(
-                    clean_html(f"""
-                    <div class="cipher-plaintext-box">
-                        <div style="font-size: 0.75rem; color: #059669; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem;">
-                            {icon(ICON_CHECK_CIRCLE, size=14, color="#059669")}
-                            <span>Berhasil didekripsi dalam {res['time'] * 1000:.3f} ms</span>
-                        </div>
-                        {html.escape(res['text']).replace(chr(10), '<br>')}
+        if f"dec_text_{report['id']}" in st.session_state:
+            res = st.session_state[f"dec_text_{report['id']}"]
+            st.markdown(
+                clean_html(f"""
+                <div class="cipher-plaintext-box">
+                    <div style="font-size: 0.75rem; color: #059669; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem;">
+                        {icon(ICON_CHECK_CIRCLE, size=14, color="#059669")}
+                        <span>Berhasil didekripsi dalam {res['time'] * 1000:.3f} ms</span>
                     </div>
-                    """),
-                    unsafe_allow_html=True
-                )
+                    {html.escape(res['text']).replace(chr(10), '<br>')}
+                </div>
+                """),
+                unsafe_allow_html=True
+            )
 
-        st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.75rem 0;'>", unsafe_allow_html=True)
+    st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.75rem 0;'>", unsafe_allow_html=True)
 
-        # 4. Dekripsi Berkas Bukti
-        st.markdown(
-            clean_html(f"""
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                <span style="width: 26px; height: 26px; border-radius: 50%; background-color: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;">
-                    2
-                </span>
-                <span style="font-family: 'Merriweather', serif; font-size: 1.05rem; font-weight: 700; color: #0b0f19;">
-                    Dekripsi & Pratinjau Berkas Bukti Terlampir
-                </span>
-            </div>
-            <p style="font-size: 0.84rem; color: #64748b; margin-bottom: 1rem;">
-                Berkas bukti fisik dienkripsi di media penyimpanan server. Klik tombol di bawah untuk mendekripsi berkas secara aman ke memory buffer forensik.
-            </p>
-            """),
-            unsafe_allow_html=True
-        )
+    # 4. Dekripsi Berkas Bukti
+    st.markdown(
+        clean_html(f"""
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <span style="width: 26px; height: 26px; border-radius: 50%; background-color: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;">
+                2
+            </span>
+            <span style="font-family: 'Merriweather', serif; font-size: 1.05rem; font-weight: 700; color: #0b0f19;">
+                Dekripsi & Pratinjau Berkas Bukti Terlampir
+            </span>
+        </div>
+        <p style="font-size: 0.84rem; color: #64748b; margin-bottom: 1rem;">
+            Berkas bukti fisik dienkripsi di media penyimpanan server. Klik tombol di bawah untuk mendekripsi berkas secara aman ke memory buffer forensik.
+        </p>
+        """),
+        unsafe_allow_html=True
+    )
 
-        ktp_path = os.path.join(STORAGE_DIR, report["ktp_filename"])
-        doc_path = os.path.join(STORAGE_DIR, report["doc_filename"])
-        vid_path = os.path.join(STORAGE_DIR, report["video_filename"])
+    ktp_path = os.path.join(STORAGE_DIR, report["ktp_filename"])
+    doc_path = os.path.join(STORAGE_DIR, report["doc_filename"])
+    vid_path = os.path.join(STORAGE_DIR, report["video_filename"])
 
-        ktp_telemetry = forensic_utils.get_file_forensic_telemetry(ktp_path)
-        doc_telemetry = forensic_utils.get_file_forensic_telemetry(doc_path)
-        vid_telemetry = forensic_utils.get_file_forensic_telemetry(vid_path)
+    ktp_telemetry = forensic_utils.get_file_forensic_telemetry(ktp_path)
+    doc_telemetry = forensic_utils.get_file_forensic_telemetry(doc_path)
+    vid_telemetry = forensic_utils.get_file_forensic_telemetry(vid_path)
 
-        is_decrypted = f"dec_files_{report['id']}" in st.session_state
+    is_decrypted = f"dec_files_{report['id']}" in st.session_state
 
-        if not is_decrypted:
-            # Action Bar: Tombol Dekripsi & Status di bagian atas
-            col_dec_info, col_dec_btn = st.columns([2, 1.2])
-            with col_dec_info:
-                st.markdown(
-                    clean_html(f"""
-                    <div class="sovereign-card-interactive" style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1d4ed8; border-radius: 8px; padding: 0.75rem 1rem;">
-                        <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">
-                            Status Forensik: Berkas Terproteksi Sandi ({report['cipher_used']})
-                        </div>
-                        <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;">
-                            3 berkas bukti fisik (KTP, PDF, Video) tersimpan dalam format sandi biner di peladen.
-                        </div>
+    if not is_decrypted:
+        # Action Bar: Tombol Dekripsi & Status di bagian atas
+        col_dec_info, col_dec_btn = st.columns([2, 1.2])
+        with col_dec_info:
+            st.markdown(
+                clean_html(f"""
+                <div class="sovereign-card-interactive" style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1d4ed8; border-radius: 8px; padding: 0.75rem 1rem;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #0f172a;">
+                        Status Forensik: Berkas Terproteksi Sandi ({report['cipher_used']})
                     </div>
-                    """),
-                    unsafe_allow_html=True
-                )
-            with col_dec_btn:
-                do_decrypt = st.button(
-                    "Dekripsi Seluruh Berkas Bukti",
-                    key=f"btn_dec_all_files_{report['id']}",
-                    type="primary",
-                    use_container_width=True,
-                    help="Mendekripsi KTP, PDF, dan Video ke memory buffer forensik"
-                )
+                    <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;">
+                        3 berkas bukti fisik (KTP, PDF, Video) tersimpan dalam format sandi biner di peladen.
+                    </div>
+                </div>
+                """),
+                unsafe_allow_html=True
+            )
+        with col_dec_btn:
+            do_decrypt = st.button(
+                "Dekripsi Seluruh Berkas Bukti",
+                key=f"btn_dec_all_files_{report['id']}",
+                type="primary",
+                use_container_width=True,
+                help="Mendekripsi KTP, PDF, dan Video ke memory buffer forensik"
+            )
 
-            if do_decrypt:
-                with st.spinner("Mendekripsi berkas bukti forensik..."):
-                    decrypted_files = {}
-                    for file_key, file_path, label in [
-                        ("ktp", ktp_path, "KTP"),
-                        ("doc", doc_path, "Dokumen PDF"),
-                        ("vid", vid_path, "Video MP4")
-                    ]:
-                        if os.path.exists(file_path):
+        if do_decrypt:
+            with st.spinner("Mendekripsi berkas bukti forensik..."):
+                decrypted_files = {}
+                has_error = False
+                for file_key, file_path, label in [
+                    ("ktp", ktp_path, "KTP"),
+                    ("doc", doc_path, "Dokumen PDF"),
+                    ("vid", vid_path, "Video MP4")
+                ]:
+                    if os.path.exists(file_path):
+                        try:
+                            with open(file_path, "rb") as f:
+                                enc_content = f.read()
+                            
                             try:
-                                with open(file_path, "rb") as f:
-                                    enc_content = f.read()
-                                
-                                # [FIX] Tambahkan parameter user_key di argumen ke-3
+                                if file_key == "vid":
+                                    file_cipher = "RC4"
+                                    file_salt = report.get("salt_video") or report["salt"]
+                                elif file_key == "ktp":
+                                    file_cipher = "AES"
+                                    file_salt = report.get("salt_ktp") or report["salt"]
+                                elif file_key == "doc":
+                                    file_cipher = "AES"
+                                    file_salt = report.get("salt_doc") or report["salt"]
+                                else:
+                                    file_cipher = "AES"
+                                    file_salt = report["salt"]
+
+                                user_key_file = crypto_utils.get_report_key(file_salt, file_cipher)
                                 dec_content, dec_time = crypto_utils.decrypt_data(
                                     enc_content, 
-                                    report["cipher_used"], 
-                                    user_key
+                                    file_cipher, 
+                                    user_key_file
                                 )
-                                
-                                decrypted_files[file_key] = {
-                                    "bytes": dec_content,
-                                    "time": dec_time,
-                                    "filename": os.path.basename(file_path).replace(".enc", "")
-                                }
-                            except Exception as e:
-                                st.error(f"Gagal mendekripsi berkas {label}: {str(e)}")
-                        else:
-                            st.warning(f"File terenkripsi {label} tidak ditemukan di server: <code>{file_path}</code>")
+                            except Exception as e_file:
+                                # Fallback coba cipher alternatif
+                                try:
+                                    file_cipher = "AES"
+                                    user_key_file = crypto_utils.get_report_key(report["salt"], file_cipher)
+                                    dec_content, dec_time = crypto_utils.decrypt_data(enc_content, file_cipher, user_key_file)
+                                except Exception:
+                                    file_cipher = "RC4" if file_key == "vid" else "DES"
+                                    user_key_file = crypto_utils.get_report_key(report["salt"], file_cipher)
+                                    dec_content, dec_time = crypto_utils.decrypt_data(enc_content, file_cipher, user_key_file)
+                            
+                            decrypted_files[file_key] = {
+                                "bytes": dec_content,
+                                "time": dec_time,
+                                "filename": os.path.basename(file_path).replace(".enc", "")
+                            }
+                        except Exception as e:
+                            has_error = True
+                            st.error(f"Gagal mendekripsi berkas {label} ({os.path.basename(file_path)}): {str(e)}")
+                    else:
+                        has_error = True
+                        st.warning(f"File terenkripsi {label} tidak ditemukan di server: <code>{file_path}</code>")
 
+                if not has_error and decrypted_files:
                     st.session_state[f"dec_files_{report['id']}"] = decrypted_files
                     st.rerun()
+                elif has_error:
+                    st.error("Proses dekripsi dihentikan karena terdapat kegagalan integritas atau berkas tidak lengkap.")
 
-            st.markdown("<div style='margin-top: 0.85rem;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: 0.85rem;'></div>", unsafe_allow_html=True)
 
-            # Pratinjau Sandi KTP (Noise Canvas + Entropi Shannon)
+        # Pratinjau Sandi KTP (Noise Canvas + Entropi Shannon)
+        render_ciphertext_card(
+            telemetry=ktp_telemetry,
+            file_label="Berkas Scan KTP Terenkripsi",
+            filename=report["ktp_filename"],
+            cipher_used=report["cipher_used"],
+            is_image=True
+        )
+
+        with st.expander("Lihat Telemetri Sandi Dokumen PDF & Video MP4 Terenkripsi", expanded=False):
+            render_ciphertext_card(
+                telemetry=doc_telemetry,
+                file_label="Dokumen PDF Terenkripsi",
+                filename=report["doc_filename"],
+                cipher_used=report["cipher_used"],
+                is_image=False
+            )
+            render_ciphertext_card(
+                telemetry=vid_telemetry,
+                file_label="Video Bukti Terenkripsi",
+                filename=report["video_filename"],
+                cipher_used=report["cipher_used"],
+                is_image=False
+            )
+
+    else:
+        files = st.session_state[f"dec_files_{report['id']}"]
+        
+        tab_decrypted, tab_ciphertext = st.tabs([
+            "Berkas Asli Terdekripsi (Forensik)",
+            "Matriks Sandi Kriptografis (Sebelum Dekripsi)"
+        ])
+
+        with tab_decrypted:
+            st.markdown("<div style='margin-top: 0.65rem;'></div>", unsafe_allow_html=True)
+            col_head1, col_head2 = st.columns([2.5, 1])
+            with col_head1:
+                st.markdown(
+                    clean_html(f"""
+                    <div class="decrypted-card-reveal" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 0.55rem 0.95rem; display: flex; align-items: center; gap: 0.5rem; min-height: 40px;">
+                        {icon(ICON_CHECK_CIRCLE, size=18, color="#059669")}
+                        <span style="font-size: 0.84rem; color: #065f46; font-weight: 600;">
+                            3 Berkas Bukti Didekripsi ke Memori Buffer Forensik Terisolasi
+                        </span>
+                    </div>
+                    """),
+                    unsafe_allow_html=True
+                )
+            with col_head2:
+                if st.button("Tutup / Kunci Memori", key=f"btn_lock_files_{report['id']}", type="secondary", use_container_width=True, help="Bersihkan seluruh buffer plaintext dari sesi"):
+                    del st.session_state[f"dec_files_{report['id']}"]
+                    st.rerun()
+
+            st.markdown("<div style='margin-bottom: 0.85rem;'></div>", unsafe_allow_html=True)
+
+            # A. KTP Previewer
+            if "ktp" in files:
+                clean_name = files["ktp"]["filename"]
+                if not clean_name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    clean_name += ".jpg"
+                render_ktp_preview(files["ktp"]["bytes"], clean_name)
+
+            # B. PDF Previewer
+            if "doc" in files:
+                clean_name = files["doc"]["filename"]
+                if not clean_name.lower().endswith('.pdf'):
+                    clean_name += ".pdf"
+                render_pdf_preview(files["doc"]["bytes"], clean_name)
+
+            # C. Video Previewer
+            if "vid" in files:
+                clean_name = files["vid"]["filename"]
+                if not clean_name.lower().endswith('.mp4'):
+                    clean_name += ".mp4"
+                render_video_preview(files["vid"]["bytes"], clean_name)
+
+        with tab_ciphertext:
+            st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
+            st.markdown(
+                clean_html(f"""
+                <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1d4ed8; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.84rem; color: #334155;">
+                    <b>Komparasi Forensik:</b> Berikut adalah wujud fisik dan status integritas data terenkripsi sebelum didekripsi oleh investigator.
+                </div>
+                """),
+                unsafe_allow_html=True
+            )
             render_ciphertext_card(
                 telemetry=ktp_telemetry,
                 file_label="Berkas Scan KTP Terenkripsi",
@@ -322,187 +454,102 @@ def render_investigator_view():
                 cipher_used=report["cipher_used"],
                 is_image=True
             )
+            render_ciphertext_card(
+                telemetry=doc_telemetry,
+                file_label="Dokumen PDF Terenkripsi",
+                filename=report["doc_filename"],
+                cipher_used=report["cipher_used"],
+                is_image=False
+            )
+            render_ciphertext_card(
+                telemetry=vid_telemetry,
+                file_label="Video Bukti Terenkripsi",
+                filename=report["video_filename"],
+                cipher_used=report["cipher_used"],
+                is_image=False
+            )
 
-            with st.expander("Lihat Telemetri Sandi Dokumen PDF & Video MP4 Terenkripsi", expanded=False):
-                render_ciphertext_card(
-                    telemetry=doc_telemetry,
-                    file_label="Dokumen PDF Terenkripsi",
-                    filename=report["doc_filename"],
-                    cipher_used=report["cipher_used"],
-                    is_image=False
-                )
-                render_ciphertext_card(
-                    telemetry=vid_telemetry,
-                    file_label="Video Bukti Terenkripsi",
-                    filename=report["video_filename"],
-                    cipher_used=report["cipher_used"],
-                    is_image=False
-                )
+    st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.75rem 0;'>", unsafe_allow_html=True)
 
-        else:
-            files = st.session_state[f"dec_files_{report['id']}"]
-            
-            tab_decrypted, tab_ciphertext = st.tabs([
-                "Berkas Asli Terdekripsi (Forensik)",
-                "Matriks Sandi Kriptografis (Sebelum Dekripsi)"
-            ])
+    # 5. Form Disposisi & Penyampaian Hasil Pemeriksaan Kasus
+    st.markdown(
+        clean_html(f"""
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <span style="width: 26px; height: 26px; border-radius: 50%; background-color: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;">
+                3
+            </span>
+            <span style="font-family: 'Merriweather', serif; font-size: 1.05rem; font-weight: 700; color: #0b0f19;">
+                Disposisi Status & Hasil Pemeriksaan Kasus
+            </span>
+        </div>
+        <p style="font-size: 0.84rem; color: #64748b; margin-bottom: 1rem;">
+            Perbarui status penanganan dan berikan catatan temuan resmi untuk dipantau secara langsung oleh pihak pelapor.
+        </p>
+        """),
+        unsafe_allow_html=True
+    )
 
-            with tab_decrypted:
-                st.markdown("<div style='margin-top: 0.65rem;'></div>", unsafe_allow_html=True)
-                col_head1, col_head2 = st.columns([2.5, 1])
-                with col_head1:
-                    st.markdown(
-                        clean_html(f"""
-                        <div class="decrypted-card-reveal" style="background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 0.55rem 0.95rem; display: flex; align-items: center; gap: 0.5rem; min-height: 40px;">
-                            {icon(ICON_CHECK_CIRCLE, size=18, color="#059669")}
-                            <span style="font-size: 0.84rem; color: #065f46; font-weight: 600;">
-                                3 Berkas Bukti Didekripsi ke Memori Buffer Forensik Terisolasi
-                            </span>
-                        </div>
-                        """),
-                        unsafe_allow_html=True
-                    )
-                with col_head2:
-                    if st.button("Tutup / Kunci Memori", key=f"btn_lock_files_{report['id']}", type="secondary", use_container_width=True, help="Bersihkan seluruh buffer plaintext dari sesi"):
-                        del st.session_state[f"dec_files_{report['id']}"]
-                        st.rerun()
+    curr_disp = get_report_disposition(report["id"])
+    curr_status = curr_disp.get("status", "Menunggu Penelaahan")
+    try:
+        status_idx = STATUS_CHOICES.index(curr_status)
+    except ValueError:
+        status_idx = 0
 
-                st.markdown("<div style='margin-bottom: 0.85rem;'></div>", unsafe_allow_html=True)
+    curr_verdict = curr_disp.get("verdict_category", VERDICT_CHOICES[0])
+    try:
+        verdict_idx = VERDICT_CHOICES.index(curr_verdict)
+    except ValueError:
+        verdict_idx = 0
 
-                # A. KTP Previewer
-                if "ktp" in files:
-                    clean_name = files["ktp"]["filename"]
-                    if not clean_name.lower().endswith(('.jpg', '.jpeg', '.png')):
-                        clean_name += ".jpg"
-                    render_ktp_preview(files["ktp"]["bytes"], clean_name)
-
-                # B. PDF Previewer
-                if "doc" in files:
-                    clean_name = files["doc"]["filename"]
-                    if not clean_name.lower().endswith('.pdf'):
-                        clean_name += ".pdf"
-                    render_pdf_preview(files["doc"]["bytes"], clean_name)
-
-                # C. Video Previewer
-                if "vid" in files:
-                    clean_name = files["vid"]["filename"]
-                    if not clean_name.lower().endswith('.mp4'):
-                        clean_name += ".mp4"
-                    render_video_preview(files["vid"]["bytes"], clean_name)
-
-            with tab_ciphertext:
-                st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
-                st.markdown(
-                    clean_html(f"""
-                    <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #1d4ed8; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.84rem; color: #334155;">
-                        <b>Komparasi Forensik:</b> Berikut adalah wujud fisik dan status integritas data terenkripsi sebelum didekripsi oleh investigator.
-                    </div>
-                    """),
-                    unsafe_allow_html=True
-                )
-                render_ciphertext_card(
-                    telemetry=ktp_telemetry,
-                    file_label="Berkas Scan KTP Terenkripsi",
-                    filename=report["ktp_filename"],
-                    cipher_used=report["cipher_used"],
-                    is_image=True
-                )
-                render_ciphertext_card(
-                    telemetry=doc_telemetry,
-                    file_label="Dokumen PDF Terenkripsi",
-                    filename=report["doc_filename"],
-                    cipher_used=report["cipher_used"],
-                    is_image=False
-                )
-                render_ciphertext_card(
-                    telemetry=vid_telemetry,
-                    file_label="Video Bukti Terenkripsi",
-                    filename=report["video_filename"],
-                    cipher_used=report["cipher_used"],
-                    is_image=False
-                )
-
-        st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.75rem 0;'>", unsafe_allow_html=True)
-
-        # 5. Form Disposisi & Penyampaian Hasil Pemeriksaan Kasus
-        st.markdown(
-            clean_html(f"""
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                <span style="width: 26px; height: 26px; border-radius: 50%; background-color: #eff6ff; border: 1.5px solid #bfdbfe; color: #1d4ed8; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;">
-                    3
-                </span>
-                <span style="font-family: 'Merriweather', serif; font-size: 1.05rem; font-weight: 700; color: #0b0f19;">
-                    Disposisi Status & Hasil Pemeriksaan Kasus
-                </span>
-            </div>
-            <p style="font-size: 0.84rem; color: #64748b; margin-bottom: 1rem;">
-                Perbarui status penanganan dan berikan catatan temuan resmi untuk dipantau secara langsung oleh pihak pelapor.
-            </p>
-            """),
-            unsafe_allow_html=True
+    if st.session_state.pop("disp_saved", False):
+        st.success("Putusan resmi dan disposisi berhasil disahkan!")
+        
+    with st.form(key=f"form_disp_{report['id']}"):
+        sel_status = st.selectbox(
+            "Status Perkembangan Penanganan Kasus:",
+            options=STATUS_CHOICES,
+            index=status_idx,
+            key=f"sel_status_widget_{report['id']}"
         )
 
-        curr_disp = get_report_disposition(report["id"])
-        curr_status = curr_disp.get("status", "Menunggu Penelaahan")
-        try:
-            status_idx = STATUS_CHOICES.index(curr_status)
-        except ValueError:
-            status_idx = 0
-
-        curr_verdict = curr_disp.get("verdict_category", VERDICT_CHOICES[0])
-        try:
-            verdict_idx = VERDICT_CHOICES.index(curr_verdict)
-        except ValueError:
-            verdict_idx = 0
-
-        if st.session_state.pop("disp_saved", False):
-            st.success("Putusan resmi dan disposisi berhasil disahkan!")
-            
-        with st.form(key=f"form_disp_{report['id']}"):
-            sel_status = st.selectbox(
-                "Status Perkembangan Penanganan Kasus:",
-                options=STATUS_CHOICES,
-                index=status_idx,
-                key=f"sel_status_widget_{report['id']}"
+        col_v1, col_v2 = st.columns(2)
+        with col_v1:
+            default_dec_num = curr_disp.get("decision_number") or f"SK-INV/{ticket_code}/2026"
+            input_decision_number = st.text_input(
+                "Nomor Registrasi Surat Putusan (SK/BAP):",
+                value=default_dec_num,
+                key=f"text_decision_number_{report['id']}",
+                help="Nomor resmi penetapan berkas hasil investigasi"
+            )
+        with col_v2:
+            sel_verdict = st.selectbox(
+                "Klasifikasi Amar Putusan Kasus:",
+                options=VERDICT_CHOICES,
+                index=verdict_idx,
+                key=f"sel_verdict_widget_{report['id']}",
+                help="Kategori putusan akhir penanganan kasus"
             )
 
-            col_v1, col_v2 = st.columns(2)
-            with col_v1:
-                default_dec_num = curr_disp.get("decision_number") or f"SK-INV/{ticket_code}/2026"
-                input_decision_number = st.text_input(
-                    "Nomor Registrasi Surat Putusan (SK/BAP):",
-                    value=default_dec_num,
-                    key=f"text_decision_number_{report['id']}",
-                    help="Nomor resmi penetapan berkas hasil investigasi"
-                )
-            with col_v2:
-                sel_verdict = st.selectbox(
-                    "Klasifikasi Amar Putusan Kasus:",
-                    options=VERDICT_CHOICES,
-                    index=verdict_idx,
-                    key=f"sel_verdict_widget_{report['id']}",
-                    help="Kategori putusan akhir penanganan kasus"
-                )
+        input_notes = st.text_area(
+            "Amar Putusan & Pertimbangan Investigator untuk Pelapor:",
+            value=curr_disp.get("notes", ""),
+            height=130,
+            placeholder="Tuliskan temuan investigasi, alasan tindak lanjut, amar putusan (terbukti/tidak terbukti), atau instruksi langkah hukum bagi pelapor...",
+            key=f"text_notes_widget_{report['id']}"
+        )
+        submitted = st.form_submit_button("Sahkan Putusan & Kirim Hasil Penanganan", type="primary", use_container_width=True)
+        if submitted:
+            final = sel_status in (STATUS_COMPLETED, STATUS_REJECTED)
+            if final and sel_verdict == VERDICT_CHOICES[0]:
+                st.error("Status final wajib memilih klasifikasi putusan selain 'Dalam Proses Penelaahan'.")
+            else:
+                update_report_disposition(
+                    report["id"], status=sel_status, notes=input_notes,
+                    decision_number=input_decision_number, verdict_category=sel_verdict
+                    )
+                st.session_state["disp_saved"] = True
+                st.rerun()
 
-            input_notes = st.text_area(
-                "Amar Putusan & Pertimbangan Investigator untuk Pelapor:",
-                value=curr_disp.get("notes", ""),
-                height=130,
-                placeholder="Tuliskan temuan investigasi, alasan tindak lanjut, amar putusan (terbukti/tidak terbukti), atau instruksi langkah hukum bagi pelapor...",
-                key=f"text_notes_widget_{report['id']}"
-            )
-            submitted = st.form_submit_button("Sahkan Putusan & Kirim Hasil Penanganan", type="primary", use_container_width=True)
-            if submitted:
-                final = sel_status in (STATUS_COMPLETED, STATUS_REJECTED)
-                if final and sel_verdict == VERDICT_CHOICES[0]:
-                    st.error("Status final wajib memilih klasifikasi putusan selain 'Dalam Proses Penelaahan'.")
-                else:
-                    update_report_disposition(
-                        report["id"], status=sel_status, notes=input_notes,
-                        decision_number=input_decision_number, verdict_category=sel_verdict
-                        )
-                    st.session_state["disp_saved"] = True
-                    st.rerun()
-
-    # Footer
-    st.markdown(render_footer(), unsafe_allow_html=True)
+# Footer
+st.markdown(render_footer(), unsafe_allow_html=True)

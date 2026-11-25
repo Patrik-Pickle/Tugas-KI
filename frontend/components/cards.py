@@ -14,77 +14,41 @@ from components.utils import clean_html
 def render_cipher_selector():
     """
     Renders an interactive cipher selection component with Sovereign Trust specifications.
-    Uses native SVG vector icons (Zero Emoticons).
+    Enforces specific data type cipher mapping according to assignment rules:
+    - AES-128-CBC for Identity Scan (KTP) & Document (PDF)
+    - RC4 for Video Evidence (MP4) with unique nonce/salt isolation
+    - DES-64-CBC for Text Narrative (Kronologi) for academic comparison
     """
     st.markdown(
         clean_html(f"""
         <div style="font-weight: 700; font-size: 0.98rem; color: #0b0f19; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
             {icon(ICON_LOCK, size=18, color="#1d4ed8")}
-            <span>Algoritma Kriptografi Pengaman</span>
+            <span>Pemetaan Otomatis Algoritma Kriptografi Per Jenis Data</span>
         </div>
         <p style="color: #64748b; font-size: 0.84rem; margin-bottom: 0.75rem;">
-            Pilih standar algoritma cipher yang akan digunakan untuk mengenkripsi teks narasi dan seluruh berkas fisik bukti:
+            Sistem menerapkan standar enkripsi simetris ganda sesuai klasifikasi GDPR / UU PDP No. 27/2022:
         </p>
         """),
         unsafe_allow_html=True
     )
 
-    cipher_options = {
-        "AES": {
-            "title": "AES-128 (CBC Mode - Standar Tertinggi)",
-            "badge": "Direkomendasikan (NIST Standard)",
-            "badge_class": "badge-verified",
-            "icon_name": ICON_SHIELD_CHECK,
-            "desc": "Standar keamanan internasional tertinggi. Enkripsi blok 128-bit dengan Initialization Vector (IV) acak unik.",
-            "color": "#1d4ed8"
-        },
-        "DES": {
-            "title": "DES (CBC Mode - Enkripsi Klasik)",
-            "badge": "Komparasi Klasik 64-bit",
-            "badge_class": "badge-warning",
-            "icon_name": ICON_ALERT_TRIANGLE,
-            "desc": "Algoritma klasik 64-bit CBC untuk perbandingan evaluasi komputasi dan benchmark akademis.",
-            "color": "#d97706"
-        },
-        "RC4": {
-            "title": "RC4 (ARC4 - Stream Cipher Cepat)",
-            "badge": "Throughput Tinggi",
-            "badge_class": "badge-primary",
-            "icon_name": ICON_ZAP,
-            "desc": "Stream cipher berkecepatan tinggi berbasis pseudo-random stream untuk throughput transmisi cepat berkas besar.",
-            "color": "#2563eb"
-        }
-    }
-    
-    selected_cipher = st.radio(
-        "Pilih Cipher:",
-        options=list(cipher_options.keys()),
-        format_func=lambda x: f"{x} - {cipher_options[x]['title']} ({cipher_options[x]['badge']})",
-        index=0,
-        horizontal=False,
-        label_visibility="collapsed"
-    )
-    
-    info = cipher_options[selected_cipher]
-    st.markdown(
-        clean_html(f"""
-        <div style="background-color: #ffffff; border: 1.5px solid {info['color']}; border-radius: 8px; padding: 0.85rem 1.15rem; margin-top: 0.4rem; box-shadow: 0 1px 3px rgba(11,15,25,0.04);">
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="font-weight: 700; color: #0b0f19; font-size: 0.92rem; display: flex; align-items: center; gap: 0.4rem;">
-                    {icon(info['icon_name'], size=16, color=info['color'])}
-                    {info['title']}
-                </span>
-                <span class="sovereign-badge {info['badge_class']}">{info['badge']}</span>
-            </div>
-            <div style="color: #64748b; font-size: 0.83rem; margin-top: 0.35rem; line-height: 1.45;">
-                {info['desc']}
-            </div>
+    mapping_info = """
+    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem 1.15rem; margin-top: 0.4rem; font-size: 0.84rem; color: #334155; line-height: 1.6;">
+        <div style="font-weight: 700; color: #0b0f19; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+            {icon_shield}
+            <span>Arsitektur Pemetaan Kriptografi Wajib:</span>
         </div>
-        """),
-        unsafe_allow_html=True
-    )
+        <ul style="margin: 0; padding-left: 1.2rem;">
+            <li><b>Data Pribadi Spesifik / Identitas (Scan KTP) & Dokumen PDF:</b> Diproteksi menggunakan <b>AES-128-CBC</b> (NIST Standard, anti-ECB dengan Unique IV).</li>
+            <li><b>Video Bukti (MP4 - Berukuran Besar):</b> Diproteksi menggunakan <b>RC4</b> (Stream Cipher dengan unique salt/nonce per payload untuk throughput tinggi & zero keystream reuse).</li>
+            <li><b>Teks Narasi / Kronologi:</b> Diproteksi menggunakan <b>DES-64-CBC</b> sebagai komparasi benchmark akademis klasik.</li>
+        </ul>
+    </div>
+    """
+    st.markdown(clean_html(mapping_info.replace("{icon_shield}", icon(ICON_SHIELD_CHECK, size=16, color="#1d4ed8"))), unsafe_allow_html=True)
     
-    return selected_cipher
+    # Return a unified mapping indicator or default auto cipher mode
+    return "AUTO-MAPPED (AES/DES/RC4)"
 
 def render_benchmark_summary(metrics: dict):
     """
