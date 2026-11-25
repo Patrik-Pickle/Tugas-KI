@@ -1,5 +1,6 @@
 import os
 import time
+from dotenv import load_dotenv
 from Crypto.Cipher import AES, DES, ARC4
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Protocol.KDF import PBKDF2
@@ -7,9 +8,16 @@ from Crypto.Hash import SHA256
 import hashlib
 import hmac
 
+load_dotenv(override=True)
+
 def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
     cipher_name = cipher_name.upper()
-    key_len = 8 if cipher_name == 'DES' else 16
+    if 'DES' in cipher_name:
+        key_len = 8
+    elif 'AES' in cipher_name or 'RC4' in cipher_name:
+        key_len = 16
+    else:
+        key_len = 16
     
     # Standar PBKDF2 bawaan Python (SHA256)
     return hashlib.pbkdf2_hmac(
@@ -21,7 +29,7 @@ def derive_key(password: str, salt: bytes, cipher_name: str) -> bytes:
     )
 
 def _mac_key(key: bytes) -> bytes:
-    return hashlib.sha256(key + b"mac").digest()
+    return hashlib.sha256(key + b"mac_secure_v2").digest()
 
 def get_report_key(salt: bytes, cipher_name: str) -> bytes:
     master = os.environ.get("WBS_MASTER_KEY")
@@ -34,23 +42,22 @@ def encrypt_data(data_bytes: bytes, cipher_name: str, key: bytes) -> tuple[bytes
     cipher_name = cipher_name.upper()
     start_time = time.perf_counter()
     
-    if cipher_name == 'AES':
+    if 'AES' in cipher_name:
         iv = os.urandom(16)
         cipher = AES.new(key, AES.MODE_CBC, iv)
         ciphertext = cipher.encrypt(pad(data_bytes, AES.block_size))
         final_payload = iv + ciphertext
         
-    elif cipher_name == 'DES':
+    elif 'DES' in cipher_name:
         iv = os.urandom(8)
         cipher = DES.new(key, DES.MODE_CBC, iv)
         ciphertext = cipher.encrypt(pad(data_bytes, DES.block_size))
         final_payload = iv + ciphertext
         
-    elif cipher_name == 'RC4':
-        nonce = os.urandom(16)
-        rc4_key = hashlib.sha256(key + nonce).digest()[:16]
-        ciphertext = ARC4.new(rc4_key).encrypt(data_bytes)
-        final_payload = nonce + ciphertext
+    elif 'RC4' in cipher_name:
+        cipher = ARC4.new(key)
+        ciphertext = cipher.encrypt(data_bytes)
+        final_payload = ciphertext
         
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")
@@ -72,24 +79,23 @@ def decrypt_data(encrypted_bytes: bytes, cipher_name: str, key: bytes) -> tuple[
         raise ValueError("Integritas gagal: data telah diubah atau kunci salah")
     encrypted_bytes = body
     
-    if cipher_name == 'AES':
+    if 'AES' in cipher_name:
         iv = encrypted_bytes[:16]
         ciphertext = encrypted_bytes[16:]
         cipher = AES.new(key, AES.MODE_CBC, iv)
         decrypted_padded = cipher.decrypt(ciphertext)
         plaintext = unpad(decrypted_padded, AES.block_size)
         
-    elif cipher_name == 'DES':
+    elif 'DES' in cipher_name:
         iv = encrypted_bytes[:8]
         ciphertext = encrypted_bytes[8:]
         cipher = DES.new(key, DES.MODE_CBC, iv)
         decrypted_padded = cipher.decrypt(ciphertext)
         plaintext = unpad(decrypted_padded, DES.block_size)
         
-    elif cipher_name == 'RC4':
-        nonce, ciphertext = encrypted_bytes[:16], encrypted_bytes[16:]
-        rc4_key = hashlib.sha256(key + nonce).digest()[:16]
-        plaintext = ARC4.new(rc4_key).decrypt(ciphertext)
+    elif 'RC4' in cipher_name:
+        cipher = ARC4.new(key)
+        plaintext = cipher.decrypt(encrypted_bytes)
         
     else:
         raise ValueError(f"Cipher {cipher_name} tidak didukung.")

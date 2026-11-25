@@ -104,8 +104,8 @@ def render_pelapor_view():
                 st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;'>", unsafe_allow_html=True)
                 
                 # Step 2
-                st.markdown(step_badge(2, "Konfigurasi Algoritma Pengaman"), unsafe_allow_html=True)
-                selected_cipher = render_cipher_selector()
+                st.markdown(step_badge(2, "Pemetaan Algoritma Kriptografis Spesifik"), unsafe_allow_html=True)
+                render_cipher_selector()
 
                 st.markdown("<hr style='border: 0; border-top: 1px solid #e2e8f0; margin: 1.5rem 0;'>", unsafe_allow_html=True)
                 
@@ -118,14 +118,14 @@ def render_pelapor_view():
 
                 col_f1, col_f2, col_f3 = st.columns(3)
                 with col_f1:
-                    uploaded_ktp = st.file_uploader("1. Scan KTP (JPG/PNG)", type=["jpg", "jpeg", "png"], help="Identitas resmi pelapor")
+                    uploaded_ktp = st.file_uploader("1. Scan KTP (JPG/PNG)", type=["jpg", "jpeg", "png"], help="Identitas resmi pelapor [AES-128-CBC]")
                 with col_f2:
-                    uploaded_doc = st.file_uploader("2. Dokumen Bukti (PDF)", type=["pdf"], help="Dokumen surat atau laporan")
+                    uploaded_doc = st.file_uploader("2. Dokumen Bukti (PDF)", type=["pdf"], help="Dokumen surat atau laporan [AES-128-CBC]")
                 with col_f3:
-                    uploaded_video = st.file_uploader("3. Video Rekaman (MP4)", type=["mp4"], help="Rekaman video kejadian")
+                    uploaded_video = st.file_uploader("3. Video Rekaman (MP4)", type=["mp4"], help="Rekaman video kejadian [RC4 High-Throughput]")
 
                 st.markdown("<div style='margin-top: 1.25rem;'></div>", unsafe_allow_html=True)
-                submit_report = st.form_submit_button("Enkripsi & Kirim Laporan ke Server", use_container_width=True)
+                submit_report = st.form_submit_button("Enkripsi Otomatis Sesuai Jenis Data & Kirim", use_container_width=True)
 
             if submit_report:
                 if not report_title.strip() or not report_chronology.strip():
@@ -133,49 +133,61 @@ def render_pelapor_view():
                 elif not uploaded_ktp or not uploaded_doc or not uploaded_video:
                     st.warning("Harap lengkapi ketiga jenis berkas bukti (Scan KTP, Dokumen PDF, dan Video MP4) sesuai regulasi audit.")
                 else:
-                    with st.spinner(f"Mengenkripsi seluruh data dengan algoritma {selected_cipher}..."):
+                    with st.spinner("Mengenkripsi setiap data dengan algoritma spesifik (AES, DES, RC4) terisolasi..."):
                         try:
                             if not os.path.exists(STORAGE_DIR):
                                 os.makedirs(STORAGE_DIR, exist_ok=True)
 
                             total_bytes = 0
 
-                            # --- [1] GENERATE DERIVED KEY SENSITIF DARI SESSION USER ---
-                            report_salt = os.urandom(16)
-                            user_key = crypto_utils.get_report_key(report_salt, selected_cipher)
-
-                            # --- [2] ENKRIPSI TEKS KRONOLOGI ---
+                            # --- PENERAPAN CIPHER SPESIFIK PER JENIS DATA SESUAI PLAN ---
+                            # 1. Teks Narasi / Kronologi -> DES-64-CBC (Perbandingan benchmark akademis)
+                            # 2. Scan KTP & Dokumen PDF -> AES-128-CBC (Standar tertinggi NIST / data spesifik)
+                            # 3. Video Bukti (MP4) -> RC4 (Stream cipher throughput tinggi dengan nonce unik per file)
+                            
+                            # --- [1] ENKRIPSI KRONOLOGI (DES) ---
+                            salt_text = os.urandom(16)
+                            key_text = crypto_utils.get_report_key(salt_text, 'DES')
                             chrono_bytes = report_chronology.encode("utf-8")
                             total_bytes += len(chrono_bytes)
-                            enc_chrono, text_time = crypto_utils.encrypt_data(chrono_bytes, selected_cipher, user_key)
+                            enc_chrono, text_time = crypto_utils.encrypt_data(chrono_bytes, 'DES', key_text)
 
                             timestamp_str = str(int(time.time() * 1000))
                             
-                            # --- [3] ENKRIPSI KTP ---
+                            # --- [2] ENKRIPSI KTP (AES) ---
+                            salt_ktp = os.urandom(16)
+                            key_ktp = crypto_utils.get_report_key(salt_ktp, 'AES')
                             ktp_bytes = uploaded_ktp.read()
                             total_bytes += len(ktp_bytes)
-                            enc_ktp, ktp_time = crypto_utils.encrypt_data(ktp_bytes, selected_cipher, user_key)
+                            enc_ktp, ktp_time = crypto_utils.encrypt_data(ktp_bytes, 'AES', key_ktp)
                             ktp_enc_filename = f"ktp_{timestamp_str}_{os.path.basename(uploaded_ktp.name)}.enc"
                             with open(os.path.join(STORAGE_DIR, ktp_enc_filename), "wb") as f:
                                 f.write(enc_ktp)
 
-                            # --- [4] ENKRIPSI DOKUMEN PDF ---
+                            # --- [3] ENKRIPSI DOKUMEN PDF (AES) ---
+                            salt_doc = os.urandom(16)
+                            key_doc = crypto_utils.get_report_key(salt_doc, 'AES')
                             doc_bytes = uploaded_doc.read()
                             total_bytes += len(doc_bytes)
-                            enc_doc, doc_time = crypto_utils.encrypt_data(doc_bytes, selected_cipher, user_key)
+                            enc_doc, doc_time = crypto_utils.encrypt_data(doc_bytes, 'AES', key_doc)
                             doc_enc_filename = f"doc_{timestamp_str}_{os.path.basename(uploaded_doc.name)}.enc"
                             with open(os.path.join(STORAGE_DIR, doc_enc_filename), "wb") as f:
                                 f.write(enc_doc)
 
-                            # --- [5] ENKRIPSI VIDEO MP4 ---
+                            # --- [4] ENKRIPSI VIDEO MP4 (RC4 dengan Unique Salt per payload untuk keystream isolation) ---
+                            salt_video = os.urandom(16)
+                            key_video = crypto_utils.get_report_key(salt_video, 'RC4')
                             video_bytes = uploaded_video.read()
                             total_bytes += len(video_bytes)
-                            enc_video, video_time = crypto_utils.encrypt_data(video_bytes, selected_cipher, user_key)
+                            enc_video, video_time = crypto_utils.encrypt_data(video_bytes, 'RC4', key_video)
                             video_enc_filename = f"vid_{timestamp_str}_{os.path.basename(uploaded_video.name)}.enc"
                             with open(os.path.join(STORAGE_DIR, video_enc_filename), "wb") as f:
                                 f.write(enc_video)
 
-                            # --- [6] SIMPAN KE DATABASE SQLITE ---
+                            # Master salt gabungan atau salt utama untuk laporan (disimpan salt AES KTP sebagai representatif utama)
+                            report_salt = salt_ktp
+
+                            # --- [5] SIMPAN KE DATABASE SQLITE (DENGAN SALT TERISOLASI PER KOMPONEN) ---
                             report_id = database.create_report(
                                 user_id=user["id"],
                                 title=report_title,
@@ -183,19 +195,23 @@ def render_pelapor_view():
                                 ktp_filename=ktp_enc_filename,
                                 doc_filename=doc_enc_filename,
                                 video_filename=video_enc_filename,
-                                cipher_used=selected_cipher,
-                                salt=report_salt
+                                cipher_used="AES-128-CBC / DES-64-CBC / RC4",
+                                salt=salt_ktp,
+                                salt_text=salt_text,
+                                salt_ktp=salt_ktp,
+                                salt_doc=salt_doc,
+                                salt_video=salt_video
                             )
 
                             total_time = text_time + ktp_time + doc_time + video_time
 
                             disp = get_report_disposition(report_id)
                             ticket_code = disp.get("tracking_token", f"WBS-{report_id:05d}")
-                            st.success(f"Laporan berhasil dienkripsi dan disimpan. Kode Tiket Kriptografis (CSPRNG): {ticket_code}")
+                            st.success(f"Laporan berhasil dienkripsi dengan pemetaan spesifik (DES Kronologi, AES KTP/Dokumen, RC4 Video). Kode Tiket: {ticket_code}")
                             
                             benchmark_metrics = {
                                 "report_id": report_id,
-                                "cipher": selected_cipher,
+                                "cipher": "AES-128-CBC / DES-64-CBC / RC4",
                                 "ticket_code": ticket_code,
                                 "text_time": text_time,
                                 "ktp_time": ktp_time,
