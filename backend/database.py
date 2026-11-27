@@ -1,6 +1,6 @@
 import sqlite3
 import os
-from auth_utils import hash_password, verify_password
+from backend.auth_utils import hash_password, verify_password
 
 DB_NAME = "wbs_data.db"
 
@@ -19,7 +19,24 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'pelapor',
+            rsa_public_key TEXT,
+            rsa_private_key_encrypted TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS access_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id INTEGER NOT NULL,
+            requester_id INTEGER NOT NULL,
+            owner_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            wrapped_report_key TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (report_id) REFERENCES reports (id),
+            FOREIGN KEY (requester_id) REFERENCES users (id),
+            FOREIGN KEY (owner_id) REFERENCES users (id)
         )
     ''')
     
@@ -46,14 +63,28 @@ def init_db():
     conn.commit()
     
     cursor.execute("SELECT * FROM users WHERE username = ?", ("admin_investigator",))
-    if not cursor.fetchone():
+    admin_user = cursor.fetchone()
+    if not admin_user:
         admin_pass_hash = hash_password("AdminWBS2026!")
+        from backend.asymmetric_utils import generate_rsa_keypair
+        pub_pem, priv_pem = generate_rsa_keypair()
         cursor.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-            ("admin_investigator", admin_pass_hash, "investigator")
+            "INSERT INTO users (username, password_hash, role, rsa_public_key, rsa_private_key_encrypted) VALUES (?, ?, ?, ?, ?)",
+            ("admin_investigator", admin_pass_hash, "investigator", pub_pem, priv_pem)
         )
         conn.commit()
         print("[+] Akun investigator default dibuat: admin_investigator / AdminWBS2026!")
+    else:
+        # Check if admin has RSA keys (migration for existing database)
+        if not admin_user['rsa_public_key'] or not admin_user['rsa_private_key_encrypted']:
+            from backend.asymmetric_utils import generate_rsa_keypair
+            pub_pem, priv_pem = generate_rsa_keypair()
+            cursor.execute(
+                "UPDATE users SET rsa_public_key = ?, rsa_private_key_encrypted = ? WHERE username = ?",
+                (pub_pem, priv_pem, "admin_investigator")
+            )
+            conn.commit()
+            print("[+] RSA Keypair ditambahkan untuk admin_investigator.")
 
     conn.close()
     print("[+] Database SQLite berhasil diinisialisasi!")
@@ -65,10 +96,17 @@ def register_user(username, password, role="pelapor"):
     cursor = conn.cursor()
     
     hashed_pwd = hash_password(password)
+    
+    # Generate RSA keypair for the new user (Tugas 2)
+    from backend.asymmetric_utils import generate_rsa_keypair
+    pub_pem, priv_pem = generate_rsa_keypair()
+    
+    # NOTE: In a full password-derived wrapper scheme, priv_pem can be encrypted 
+    # using PBKDF2/derived password. For now, we store them directly or in PEM format.
     try:
         cursor.execute(
-            "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-            (username, hashed_pwd, role)
+            "INSERT INTO users (username, password_hash, role, rsa_public_key, rsa_private_key_encrypted) VALUES (?, ?, ?, ?, ?)",
+            (username, hashed_pwd, role, pub_pem, priv_pem)
         )
         conn.commit()
         return True, "Registrasi berhasil!"
@@ -86,10 +124,30 @@ def authenticate_user(username, password):
     conn.close()
     
     if user and verify_password(user['password_hash'], password):
+        # Ensure user has RSA keypair (lazy generation for pre-existing users before migration)
+        if not user['rsa_public_key'] or not user['rsa_private_key_encrypted']:
+            conn_fix = get_connection()
+            from backend.asymmetric_utils import generate_rsa_keypair
+            pub_pem, priv_pem = generate_rsa_keypair()
+            conn_fix.execute(
+                "UPDATE users SET rsa_public_key = ?, rsa_private_key_encrypted = ? WHERE id = ?",
+                (pub_pem, priv_pem, user['id'])
+            )
+            conn_fix.commit()
+            conn_fix.close()
+            # Re-fetch user
+            conn_fix2 = get_connection()
+            cursor_fix2 = conn_fix2.cursor()
+            cursor_fix2.execute("SELECT * FROM users WHERE id = ?", (user['id'],))
+            user = cursor_fix2.fetchone()
+            conn_fix2.close()
+
         return {
             "id": user['id'],
             "username": user['username'],
-            "role": user['role']
+            "role": user['role'],
+            "rsa_public_key": user['rsa_public_key'],
+            "rsa_private_key_encrypted": user['rsa_private_key_encrypted']
         }
     return None
 
